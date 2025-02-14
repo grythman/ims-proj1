@@ -50,23 +50,79 @@ const Register = () => {
       return;
     }
 
+    // Password validation
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      setLoading(false);
+      return;
+    }
+
+    const hasNumber = /\d/.test(formData.password);
+    const hasLetter = /[a-zA-Z]/.test(formData.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+
+    if (!hasNumber || !hasLetter || !hasSpecial) {
+      toast.error('Password must contain at least one number, one letter, and one special character');
+      setLoading(false);
+      return;
+    }
+
+    const registrationData = {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+      password_confirm: formData.confirm_password,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      user_type: formData.user_type,
+      // Include user type specific fields
+      ...(formData.user_type === 'student' && {
+        student_id: formData.student_id,
+        major: formData.major,
+        year_of_study: formData.year_of_study,
+      }),
+      ...(formData.user_type === 'mentor' && {
+        company: formData.company,
+        position: formData.position,
+        expertise: formData.expertise,
+      }),
+      ...(formData.user_type === 'teacher' && {
+        department_name: formData.department_name,
+        faculty_id: formData.faculty_id,
+        subject_area: formData.subject_area,
+      }),
+    };
+
+    console.log('Registration data:', registrationData);
+
     try {
-      const response = await register({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        password_confirm: formData.confirm_password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        user_type: formData.user_type,
-        // Include other fields as necessary
-      });
+      const response = await register(registrationData);
       console.log('Registration response:', response);
       toast.success('Registration successful! Please login.');
       navigate('/login');
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error(error.response?.data?.message || 'Registration failed');
+      
+      // Handle different types of error messages
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        Object.entries(errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            messages.forEach(message => {
+              toast.error(`${field}: ${message}`);
+            });
+          } else {
+            toast.error(`${field}: ${messages}`);
+          }
+        });
+      } else {
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.response?.data?.detail ||
+                            'Registration failed';
+        toast.error(errorMessage);
+      }
+      
       setLoading(false);
     }
   };

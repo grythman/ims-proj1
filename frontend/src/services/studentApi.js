@@ -28,15 +28,29 @@ const studentApi = {
         getActivities: async () => {
             try {
                 const response = await api.get('/api/dashboard/student/activities/');
-                return response.data?.data || [];
+                if (response.data?.status === 'success') {
+                    return response.data.data || [];
+                }
+                return [];
             } catch (error) {
                 console.error('Error fetching recent activities:', error);
-                return [];  // Return empty array on error
+                return [];
             }
         }
     },
 
     internships: {
+        // Get Current/Active Internship
+        getCurrent: async () => {
+            try {
+                const response = await api.get('/api/internships/my-internship/');
+                return response.data?.data || null;
+            } catch (error) {
+                console.error('Error fetching current internship:', error);
+                return null;
+            }
+        },
+
         // Register New Internship
         register: async (internshipData) => {
             try {
@@ -44,17 +58,6 @@ const studentApi = {
                 return response.data;
             } catch (error) {
                 console.error('Error registering internship:', error);
-                throw error;
-            }
-        },
-
-        // Get Current/Active Internship
-        getCurrent: async () => {
-            try {
-                const response = await api.get('/api/internships/current/');
-                return response.data;
-            } catch (error) {
-                console.error('Error fetching active internship:', error);
                 throw error;
             }
         },
@@ -83,21 +86,32 @@ const studentApi = {
     },
 
     reports: {
-        // Get Reports
+        // Get All Reports
         getAll: async () => {
             try {
                 const response = await api.get('/api/reports/');
-                return response.data;
+                return response.data?.data || [];
             } catch (error) {
                 console.error('Error fetching reports:', error);
+                return [];
+            }
+        },
+
+        // Create Report
+        create: async (reportData) => {
+            try {
+                const response = await api.post('/api/reports/create/', reportData);
+                return response.data;
+            } catch (error) {
+                console.error('Error creating report:', error);
                 throw error;
             }
         },
 
         // Submit Report
-        submit: async (data) => {
+        submit: async (reportId) => {
             try {
-                const response = await api.post('/api/reports/submit/', data);
+                const response = await api.post(`/api/reports/${reportId}/submit/`);
                 return response.data;
             } catch (error) {
                 console.error('Error submitting report:', error);

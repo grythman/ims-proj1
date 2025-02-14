@@ -4,6 +4,43 @@ const ENDPOINTS = {
     EVALUATIONS: '/api/evaluations',
     INTERNSHIPS: '/api/internships',
     REPORTS: '/api/reports',
+    DASHBOARD: '/api/internships/mentor/dashboard'
+};
+
+// Dashboard management
+export const dashboardService = {
+    // Get dashboard overview
+    getOverview: async () => {
+        try {
+            const response = await api.get(ENDPOINTS.DASHBOARD);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching dashboard overview:', error);
+            throw error;
+        }
+    },
+
+    // Get dashboard stats
+    getStats: async () => {
+        try {
+            const response = await api.get(`${ENDPOINTS.DASHBOARD}/stats`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+            throw error;
+        }
+    },
+
+    // Get dashboard activities
+    getActivities: async () => {
+        try {
+            const response = await api.get(`${ENDPOINTS.DASHBOARD}/activities`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching dashboard activities:', error);
+            throw error;
+        }
+    }
 };
 
 // Evaluation management
@@ -100,6 +137,53 @@ export const reportService = {
             console.error('Error submitting preliminary report:', error);
             throw error;
         }
+    },
+
+    // Get pending reports
+    getPendingReports: async () => {
+        try {
+            const response = await api.get(`${ENDPOINTS.REPORTS}/pending/`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching pending reports:', error);
+            throw error;
+        }
+    },
+
+    // Submit report review
+    submitReview: async (reportId, reviewData) => {
+        try {
+            const response = await api.post(`${ENDPOINTS.REPORTS}/${reportId}/review/`, reviewData);
+            return response.data;
+        } catch (error) {
+            console.error('Error submitting report review:', error);
+            throw error;
+        }
+    }
+};
+
+// Student management
+export const studentService = {
+    // Get all assigned students
+    getAllAssigned: async () => {
+        try {
+            const response = await api.get(`${ENDPOINTS.INTERNSHIPS}/mentor/students/`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching assigned students:', error);
+            throw error;
+        }
+    },
+
+    // Get student details
+    getStudentDetails: async (studentId) => {
+        try {
+            const response = await api.get(`${ENDPOINTS.INTERNSHIPS}/mentor/students/${studentId}/`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching student details:', error);
+            throw error;
+        }
     }
 };
 
@@ -130,5 +214,13 @@ export default {
     reports: Object.keys(reportService).reduce((acc, key) => ({
         ...acc,
         [key]: withErrorHandling(reportService[key])
+    }), {}),
+    dashboard: Object.keys(dashboardService).reduce((acc, key) => ({
+        ...acc,
+        [key]: withErrorHandling(dashboardService[key])
+    }), {}),
+    students: Object.keys(studentService).reduce((acc, key) => ({
+        ...acc,
+        [key]: withErrorHandling(studentService[key])
     }), {})
 }; 

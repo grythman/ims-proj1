@@ -23,7 +23,7 @@ class Organization(models.Model):
         ordering = ['name']
         indexes = [
             models.Index(fields=['name'], name='organization_name_idx'),
-            models.Index(fields=['contact_person'], name='organization_contact_person_idx'),
+            models.Index(fields=['contact_person'], name='org_contact_person_idx'),
         ]
 
     def __str__(self):

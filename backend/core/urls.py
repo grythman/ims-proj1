@@ -18,16 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
-from apps.users.views import LoginView, PasswordResetView, PasswordResetConfirmView
+from rest_framework_simplejwt.views import TokenRefreshView
+from apps.users.views import PasswordResetView, PasswordResetConfirmView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # JWT Authentication endpoints
-    path('api/users/login/', LoginView.as_view(), name='login'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Password Reset endpoints
     path('api/users/password-reset/', PasswordResetView.as_view(), name='password_reset'),

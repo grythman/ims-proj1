@@ -38,12 +38,38 @@ class LoginSerializer(serializers.Serializer):
         username = attrs.get('username')
         password = attrs.get('password')
 
+        print('Login validation:', {
+            'username': username,
+            'has_password': bool(password)
+        })
+
         if not username or not password:
             raise serializers.ValidationError({
                 'error': 'Both username and password are required.'
             })
 
+        # First check if user exists
+        try:
+            user = User.objects.get(username=username)
+            print('Found user:', {
+                'id': user.id,
+                'username': user.username,
+                'user_type': user.user_type,
+                'is_active': user.is_active
+            })
+        except User.DoesNotExist:
+            print('User not found:', username)
+            raise serializers.ValidationError({
+                'error': 'Invalid credentials.'
+            })
+
+        # Then try to authenticate
         user = authenticate(username=username, password=password)
+        print('Authentication result:', {
+            'success': bool(user),
+            'user_id': user.id if user else None,
+            'user_type': user.user_type if user else None
+        })
 
         if not user:
             raise serializers.ValidationError({

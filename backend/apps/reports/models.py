@@ -32,7 +32,7 @@ class Report(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports')
-    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, related_name='reports')
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, related_name='report_set')
     report_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     feedback = models.TextField(blank=True)

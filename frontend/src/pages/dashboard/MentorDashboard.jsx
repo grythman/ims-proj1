@@ -44,21 +44,30 @@ const MentorDashboard = () => {
     totalStudents: 0,
     pendingReviews: 0,
     completedEvaluations: 0,
-    recentActivity: []
+    recentActivity: [],
+    studentProgress: []
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const overview = await mentorApi.dashboard.getOverview();
-        const stats = await mentorApi.dashboard.getStats();
-        const activities = await mentorApi.dashboard.getActivities();
+        const [overview, stats, activities] = await Promise.all([
+          mentorApi.dashboard.getOverview(),
+          mentorApi.dashboard.getStats(),
+          mentorApi.dashboard.getActivities()
+        ]);
 
         setDashboardData({
-          ...overview,
-          ...stats,
-          recentActivity: activities
+          totalStudents: overview.active_internships || 0,
+          pendingReviews: overview.pending_reports || 0,
+          completedEvaluations: overview.completed_reports || 0,
+          studentProgress: overview.students?.map(student => ({
+            name: student.name,
+            progress: calculateProgress(student.start_date, student.end_date)
+          })) || [],
+          recentActivity: activities || [],
+          averageRatings: overview.average_ratings || {}
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -70,6 +79,15 @@ const MentorDashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  const calculateProgress = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    const total = end - start;
+    const current = today - start;
+    return Math.min(Math.max(Math.round((current / total) * 100), 0), 100);
+  };
 
   if (loading) {
     return (
@@ -97,12 +115,6 @@ const MentorDashboard = () => {
       value: dashboardData.completedEvaluations,
       icon: CheckCircle,
       description: "Evaluations completed this month"
-    },
-    {
-      title: "Active Tasks",
-      value: "8",
-      icon: Clock,
-      description: "Ongoing student tasks"
     }
   ];
 
@@ -129,7 +141,7 @@ const MentorDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
@@ -168,18 +180,23 @@ const MentorDashboard = () => {
             <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-6">
-              {dashboardData.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <activity.icon className="h-4 w-4 text-emerald-600" />
+            <div className="space-y-4">
+              {dashboardData.recentActivity?.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                    {activity.type === 'report_submission' ? (
+                      <FileText className="h-5 w-5 text-emerald-600" />
+                    ) : (
+                      <Award className="h-5 w-5 text-emerald-600" />
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-500">{activity.description}</p>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(activity.timestamp).toLocaleDateString()}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {activity.student} - {activity.type === 'report_submission' ? 'Submitted Report' : 'Evaluation'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(activity.date).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -187,38 +204,6 @@ const MentorDashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Pending Reviews Section */}
-      <Card>
-        <CardHeader className="border-b p-6">
-          <CardTitle className="text-lg font-semibold">Pending Reviews</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {dashboardData.pendingReviewsList?.map((review, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{review.studentName}</p>
-                    <p className="text-sm text-gray-500">{review.reportType}</p>
-                  </div>
-                </div>
-                <Button
-                  as={Link}
-                  to={`/mentor/reviews/${review.id}`}
-                  variant="outline"
-                  className="text-emerald-600 hover:bg-emerald-50"
-                >
-                  Review
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

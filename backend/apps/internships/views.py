@@ -5,7 +5,7 @@ from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
-from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report
+from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report, Message
 from .serializers import (
     InternshipSerializer, 
     InternshipCreateSerializer,
@@ -21,7 +21,9 @@ from .serializers import (
     FinalEvaluationSerializer,
     ReportSerializer,
     ReportEvaluationSerializer,
-    DashboardSerializer
+    DashboardSerializer,
+    MessageSerializer,
+    StudentProfileSerializer
 )
 from .permissions import IsInternshipParticipant, IsAgreementParticipant, IsTeacher, IsStudent
 from apps.notifications.services import NotificationService
@@ -31,8 +33,12 @@ from rest_framework.views import APIView
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import PermissionDenied
+from datetime import timedelta
+from apps.notifications.models import Notification
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 class InternshipViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsInternshipParticipant]
@@ -647,40 +653,62 @@ class StudentDashboardView(APIView):
     def get(self, request):
         try:
             student = request.user
-            print(f"Debug - User ID: {student.id}")
-            print(f"Debug - User Type: {student.user_type}")
-            print(f"Debug - User Permissions: {student.get_all_permissions()}")
-
-            # Verify user has required permissions
-            if not student.has_perm('internships.view_own_reports'):
-                return Response(
-                    {'error': 'You do not have permission to view reports'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            # Get current internship
+            
+            # Get current internship with all related data
             internship = Internship.objects.filter(
                 student=student,
-                status='active'
+                status=Internship.STATUS_ACTIVE
             ).select_related(
                 'organization',
                 'mentor',
                 'teacher'
             ).first()
 
-            # Get reports
+            # Get reports with evaluations
             reports = Report.objects.filter(
                 student=student
             ).select_related(
                 'internship'
-            ).order_by('-submitted_at')[:5]
+            ).prefetch_related(
+                'evaluations'
+            ).order_by('-submitted_at')
 
-            # Get evaluations
-            evaluations = Evaluation.objects.filter(
-                report__student=student
-            ).select_related(
-                'evaluator'
-            ).order_by('-created_at')
+            # Get mentor and teacher evaluations
+            evaluations = {
+                'mentor': Evaluation.objects.filter(
+                    report__student=student,
+                    evaluator_type='mentor'
+                ).select_related('evaluator').order_by('-created_at').first(),
+                'teacher': Evaluation.objects.filter(
+                    report__student=student,
+                    evaluator_type='teacher'
+                ).select_related('evaluator').order_by('-created_at').first()
+            }
+
+            # Calculate internship progress
+            internship_progress = None
+            if internship and internship.start_date and internship.end_date:
+                total_days = (internship.end_date - internship.start_date).days
+                if total_days > 0:
+                    days_completed = (timezone.now().date() - internship.start_date).days
+                    internship_progress = {
+                        'total_days': total_days,
+                        'days_completed': max(0, min(days_completed, total_days)),
+                        'percentage': min(100, max(0, (days_completed / total_days) * 100)),
+                        'start_date': internship.start_date,
+                        'end_date': internship.end_date,
+                        'remaining_days': max(0, total_days - days_completed)
+                    }
+
+            # Get preliminary report status
+            preliminary_report = PreliminaryReport.objects.filter(
+                internship=internship
+            ).order_by('-created_at').first() if internship else None
+
+            # Get recent forum/chat messages
+            messages = Message.objects.filter(
+                Q(sender=student) | Q(recipient=student)
+            ).select_related('sender', 'recipient').order_by('-created_at')[:10]
 
             data = {
                 'internship': InternshipSerializer(
@@ -692,12 +720,19 @@ class StudentDashboardView(APIView):
                     many=True,
                     context={'request': request}
                 ).data,
-                'evaluations': EvaluationSerializer(
-                    evaluations,
-                    many=True,
-                    context={'request': request}
+                'evaluations': {
+                    'mentor': EvaluationSerializer(evaluations['mentor']).data if evaluations['mentor'] else None,
+                    'teacher': EvaluationSerializer(evaluations['teacher']).data if evaluations['teacher'] else None
+                },
+                'progress': internship_progress,
+                'preliminary_report': PreliminaryReportSerializer(
+                    preliminary_report
+                ).data if preliminary_report else None,
+                'recent_messages': MessageSerializer(
+                    messages,
+                    many=True
                 ).data,
-                'profile': {
+                'profile_completion': {
                     'personal_info': bool(student.first_name and student.last_name),
                     'contact_info': bool(student.email and getattr(student, 'phone', None)),
                     'academic_info': bool(getattr(student, 'student_id', None)),
@@ -713,6 +748,28 @@ class StudentDashboardView(APIView):
                 {'error': 'Failed to load dashboard data'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['POST'])
+    def update_profile(self, request):
+        try:
+            user = request.user
+            serializer = StudentProfileSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'status': 'success',
+                    'message': 'Profile updated successfully',
+                    'data': serializer.data
+                })
+            return Response({
+                'status': 'error',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class TeacherDashboardView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
@@ -901,3 +958,269 @@ class InternshipRegistrationView(generics.CreateAPIView):
                 {'error': 'Failed to register internship'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class CurrentInternshipView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            internship = Internship.objects.filter(
+                student=request.user,
+                status=Internship.STATUS_ACTIVE
+            ).select_related('organization', 'mentor').first()
+
+            if not internship:
+                return Response({
+                    'status': 'success',
+                    'data': None
+                })
+
+            serializer = InternshipSerializer(internship)
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class MentorDashboardView(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        try:
+            user = request.user
+            if user.user_type != 'mentor':
+                return Response({
+                    'error': 'Only mentors can access this endpoint'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Get all active internships where user is mentor
+            internships = Internship.objects.filter(
+                mentor=user,
+                status='active'
+            ).select_related('student', 'organization')
+
+            # Get pending reports count
+            pending_reports = Report.objects.filter(
+                internship__mentor=user,
+                status='pending'
+            ).count()
+
+            # Get completed reports count
+            completed_reports = Report.objects.filter(
+                internship__mentor=user,
+                status='approved'
+            ).count()
+
+            # Get average ratings
+            avg_ratings = Report.objects.filter(
+                internship__mentor=user,
+                status='approved'
+            ).aggregate(
+                avg_performance=Avg('evaluation__performance_rating'),
+                avg_attendance=Avg('evaluation__attendance_rating'),
+                avg_initiative=Avg('evaluation__initiative_rating')
+            )
+
+            data = {
+                'active_internships': internships.count(),
+                'pending_reports': pending_reports,
+                'completed_reports': completed_reports,
+                'students': [
+                    {
+                        'id': internship.student.id,
+                        'name': internship.student.get_full_name(),
+                        'company': internship.organization.name,
+                        'start_date': internship.start_date,
+                        'end_date': internship.end_date
+                    }
+                    for internship in internships
+                ],
+                'average_ratings': {
+                    'performance': round(avg_ratings['avg_performance'] or 0, 2),
+                    'attendance': round(avg_ratings['avg_attendance'] or 0, 2),
+                    'initiative': round(avg_ratings['avg_initiative'] or 0, 2)
+                }
+            }
+            return Response(data)
+            
+        except Exception as e:
+            logger.error(f"Error in MentorDashboardView.list: {str(e)}")
+            return Response({
+                'error': 'Failed to load dashboard data'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        try:
+            user = request.user
+            if user.user_type != 'mentor':
+                return Response({
+                    'error': 'Only mentors can access this endpoint'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Get statistics for the last 30 days
+            thirty_days_ago = timezone.now() - timedelta(days=30)
+
+            # Get all internships for this mentor
+            internships = Internship.objects.filter(mentor=user)
+            active_internships = internships.filter(status='active')
+
+            # Get reports for this mentor
+            reports = Report.objects.filter(internship__mentor=user)
+            pending_reports = reports.filter(status='pending')
+            recent_reports = reports.filter(created_at__gte=thirty_days_ago)
+            recent_evaluations = reports.filter(
+                status='approved',
+                updated_at__gte=thirty_days_ago
+            )
+
+            stats = {
+                'total_students': internships.count(),
+                'active_students': active_internships.count(),
+                'total_reports': reports.count(),
+                'pending_reviews': pending_reports.count(),
+                'monthly_stats': {
+                    'reports_submitted': recent_reports.count(),
+                    'evaluations_completed': recent_evaluations.count()
+                }
+            }
+            return Response(stats)
+            
+        except Exception as e:
+            logger.error(f"Error in MentorDashboardView.stats: {str(e)}")
+            return Response({
+                'error': 'Failed to load stats'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def activities(self, request):
+        try:
+            user = request.user
+            if user.user_type != 'mentor':
+                return Response({
+                    'error': 'Only mentors can access this endpoint'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Get recent report submissions
+            recent_reports = Report.objects.filter(
+                internship__mentor=user
+            ).select_related('student').order_by('-created_at')[:5]
+
+            # Get recent evaluations
+            recent_evaluations = Report.objects.filter(
+                internship__mentor=user,
+                status__in=['approved', 'rejected']
+            ).select_related('student').order_by('-updated_at')[:5]
+
+            activities = []
+
+            # Add report submissions to activities
+            for report in recent_reports:
+                activities.append({
+                    'type': 'report_submission',
+                    'student': report.student.get_full_name(),
+                    'title': report.title,
+                    'status': report.status,
+                    'date': report.created_at
+                })
+
+            # Add evaluations to activities
+            for report in recent_evaluations:
+                activities.append({
+                    'type': 'evaluation',
+                    'student': report.student.get_full_name(),
+                    'title': f"Evaluation: {report.title}",
+                    'status': report.status,
+                    'date': report.updated_at
+                })
+
+            # Sort activities by date
+            activities.sort(key=lambda x: x['date'], reverse=True)
+
+            return Response(activities[:5])  # Return only the 5 most recent activities
+            
+        except Exception as e:
+            logger.error(f"Error in MentorDashboardView.activities: {str(e)}")
+            return Response({
+                'error': 'Failed to load activities'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class StudentProfileUpdateView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = StudentProfileSerializer
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+
+            return Response({
+                'status': 'success',
+                'message': 'Profile updated successfully',
+                'data': serializer.data
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class MentorReportEvaluationView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EvaluationSerializer
+    queryset = Report.objects.all()
+
+    def get_queryset(self):
+        return Report.objects.filter(internship__mentor=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            report = self.get_object()
+            
+            if report.status != 'pending':
+                return Response({
+                    'status': 'error',
+                    'message': 'Can only evaluate pending reports'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            evaluation = serializer.save(
+                evaluator=request.user,
+                report=report,
+                evaluator_type='mentor'
+            )
+            
+            # Update report status
+            report.status = 'evaluated'
+            report.save()
+
+            # Notify student
+            NotificationService.create_notification(
+                recipient=report.student,
+                title='Report Evaluated',
+                message=f'Your report has been evaluated by your mentor',
+                notification_type='evaluation'
+            )
+
+            return Response({
+                'status': 'success',
+                'message': 'Report evaluated successfully',
+                'data': EvaluationSerializer(evaluation).data
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)

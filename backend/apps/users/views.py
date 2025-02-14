@@ -15,6 +15,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
+import traceback
 
 User = get_user_model()
 
@@ -52,40 +53,67 @@ class LoginView(APIView):
 
     def post(self, request):
         try:
+            print('Login request data:', request.data)
             serializer = self.serializer_class(data=request.data)
-            if serializer.is_valid():
-                user = serializer.validated_data['user']
-                refresh = RefreshToken.for_user(user)
-                
+            
+            if not serializer.is_valid():
+                print('Serializer validation errors:', serializer.errors)
                 return Response({
-                    'status': 'success',
-                    'data': {
-                        'access_token': str(refresh.access_token),
-                        'refresh_token': str(refresh),
-                        'user': {
-                            'id': user.id,
-                            'username': user.username,
-                            'email': user.email,
-                            'first_name': user.first_name,
-                            'last_name': user.last_name,
-                            'user_type': user.user_type
-                        }
+                    'status': 'error',
+                    'message': 'Invalid credentials',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = serializer.validated_data['user']
+            print('Authenticated user:', {
+                'id': user.id,
+                'username': user.username,
+                'user_type': user.user_type,
+                'is_active': user.is_active
+            })
+            
+            refresh = RefreshToken.for_user(user)
+            
+            response_data = {
+                'status': 'success',
+                'data': {
+                    'access_token': str(refresh.access_token),
+                    'refresh_token': str(refresh),
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'user_type': user.user_type,
+                        'is_active': user.is_active
                     }
-                })
-            return Response({
-                'status': 'error',
-                'message': 'Invalid credentials',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+                }
+            }
+            print('Login response data:', response_data)
+            return Response(response_data)
+            
         except Exception as e:
+            print('Login error:', str(e))
+            print('Error traceback:', traceback.format_exc())
+            error_message = str(e)
+            if hasattr(e, 'detail'):
+                error_message = e.detail
             return Response({
                 'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message': 'Authentication failed',
+                'errors': {
+                    'error': [error_message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
         return Response({
-            'message': 'Please use POST method for login'
+            'status': 'error',
+            'message': 'Please use POST method for login',
+            'errors': {
+                'error': ['This endpoint only accepts POST requests']
+            }
         }, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -116,8 +144,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 stats = {
                     'internships': {
                         'total': internships.count(),
-                        'active': internships.filter(status='active').count(),
-                        'completed': internships.filter(status='completed').count()
+                        'active': internships.filter(status=Internship.STATUS_ACTIVE).count(),
+                        'completed': internships.filter(status=Internship.STATUS_COMPLETED).count()
                     },
                     'reports': {
                         'total': reports.count(),
@@ -135,7 +163,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 stats = {
                     'students': {
                         'total': Internship.objects.filter(mentor=user).count(),
-                        'active': Internship.objects.filter(mentor=user, status='active').count()
+                        'active': Internship.objects.filter(mentor=user, status=Internship.STATUS_ACTIVE).count()
                     },
                     'reports': {
                         'pending_review': Report.objects.filter(mentor=user, status='pending').count(),
@@ -146,7 +174,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 stats = {
                     'students': {
                         'total': User.objects.filter(user_type='student').count(),
-                        'active': Internship.objects.filter(status='active').count()
+                        'active': Internship.objects.filter(status=Internship.STATUS_ACTIVE).count()
                     },
                     'reports': {
                         'total': Report.objects.all().count(),
@@ -154,8 +182,8 @@ class UserViewSet(viewsets.ModelViewSet):
                     },
                     'internships': {
                         'total': Internship.objects.all().count(),
-                        'active': Internship.objects.filter(status='active').count(),
-                        'completed': Internship.objects.filter(status='completed').count()
+                        'active': Internship.objects.filter(status=Internship.STATUS_ACTIVE).count(),
+                        'completed': Internship.objects.filter(status=Internship.STATUS_COMPLETED).count()
                     }
                 }
 

@@ -29,7 +29,6 @@ class Internship(models.Model):
     status = models.IntegerField(choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    company_name = models.CharField(max_length=255)
 
     class Meta:
         ordering = ['-created_at']
@@ -307,3 +306,34 @@ class InternshipPlan(models.Model):
 
     def __str__(self):
         return f"Plan for {self.internship.student.username}'s internship"
+
+class Message(models.Model):
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_messages'
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='received_messages'
+    )
+    internship = models.ForeignKey(
+        'Internship',
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['sender', 'recipient']),
+            models.Index(fields=['internship', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"Message from {self.sender} to {self.recipient} at {self.created_at}"

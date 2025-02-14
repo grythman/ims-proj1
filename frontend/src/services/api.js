@@ -5,6 +5,7 @@ const api = axios.create({
     baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
     headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json'
     },
     withCredentials: true,
     timeout: 10000, // 10 second timeout
@@ -13,19 +14,39 @@ const api = axios.create({
 // Auth related API calls
 export const login = async (username, password) => {
     try {
-        const response = await api.post('/api/users/login/', {
-            username,
-            password
+        console.log('Sending login request with data:', { username });
+        const response = await api.post('/api/users/login/', 
+            { username, password },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        
+        console.log('Login API response:', {
+            status: response.status,
+            data: response.data
         });
         
-        if (response.data?.data?.access_token) {
-            localStorage.setItem('token', response.data.data.access_token);
-            localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        if (response.data?.status === 'success') {
+            const { access_token, user } = response.data.data;
+            // Store the token
+            localStorage.setItem('token', access_token);
+            // Update axios default headers
+            api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+            return response.data;
         }
         
-        return response.data;
+        throw new Error('Invalid response format from server');
     } catch (error) {
-        console.error('Login API error:', error.response?.data || error.message);
+        console.error('Login API error:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+            stack: error.stack
+        });
         throw error;
     }
 };
@@ -47,10 +68,16 @@ export const getMe = async () => {
 
 export const register = async (userData) => {
     try {
+        console.log('Sending registration request with data:', userData);
         const response = await api.post('/api/users/register/', userData);
+        console.log('Registration API response:', response.data);
         return response.data;
     } catch (error) {
-        console.error('Register API error:', error.response?.data || error.message);
+        console.error('Registration API error:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+        });
         throw error;
     }
 };
@@ -82,10 +109,25 @@ export const resetPassword = async (token, password) => {
 // Request interceptor for adding auth token and handling requests
 api.interceptors.request.use(
     (config) => {
+        // Ensure headers are properly set for each request
+        config.headers = {
+            ...config.headers,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        console.log('Request config:', {
+            url: config.url,
+            method: config.method,
+            headers: config.headers,
+            data: config.data
+        });
+        
         return config;
     },
     (error) => {

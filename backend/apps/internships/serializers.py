@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report
+from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report, Message
 from apps.users.serializers import UserSerializer
 from apps.companies.serializers import OrganizationSerializer
 from apps.reports.serializers import ReportSerializer
-from companies.models import Organization
+from apps.companies.models import Organization
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -408,3 +408,26 @@ class ReportEvaluationSerializer(serializers.ModelSerializer):
         report.save()
         
         return evaluation
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'first_name', 'last_name', 'email',
+            'phone', 'student_id', 'major', 'year_of_study',
+            'avatar'
+        ]
+        read_only_fields = ['id']
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.get_full_name', read_only=True)
+    recipient_name = serializers.CharField(source='recipient.get_full_name', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = [
+            'id', 'sender', 'sender_name', 'recipient',
+            'recipient_name', 'content', 'is_read',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['sender', 'created_at', 'updated_at']

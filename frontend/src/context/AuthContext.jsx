@@ -44,21 +44,39 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
+            console.log('Attempting login with:', { username });
             const response = await loginApi(username, password);
+            console.log('Login response:', response);
             
-            if (response.data?.access_token) {
+            // Check if the response has the expected structure
+            if (response?.status === 'success' && response?.data?.access_token) {
                 localStorage.setItem('token', response.data.access_token);
                 setUser(response.data.user);
+                const redirectPath = handleRoleBasedRedirect(response.data.user.user_type);
+                console.log('Login successful, redirecting to:', redirectPath);
                 return {
                     data: response.data,
-                    redirectPath: handleRoleBasedRedirect(response.data.user.user_type)
+                    redirectPath
                 };
             }
             
-            throw new Error('Login failed: Invalid response format');
+            console.error('Invalid response format:', response);
+            throw new Error(response?.message || 'Login failed: Invalid response format');
         } catch (error) {
-            console.error('Login failed:', error);
-            const errorMessage = error.response?.data?.message || 'Login failed';
+            console.error('Login error details:', {
+                response: error.response?.data,
+                status: error.response?.status,
+                message: error.message
+            });
+            
+            // Extract error message with fallbacks
+            const errorMessage = 
+                error.response?.data?.errors?.error?.[0] || 
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                error.message ||
+                'Invalid username or password';
+                
             toast.error(errorMessage);
             throw error;
         }
