@@ -2,19 +2,23 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import Report, ReportComment, ReportTemplate
 from apps.users.serializers import UserSerializer
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class ReportCommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     attachment_url = serializers.SerializerMethodField()
     time_ago = serializers.SerializerMethodField()
+    author_name = serializers.CharField(source='author.get_full_name', read_only=True)
 
     class Meta:
         model = ReportComment
         fields = [
-            'id', 'author', 'content', 'attachment',
-            'attachment_url', 'created_at', 'time_ago'
+            'id', 'author', 'author_name', 'content', 'attachment',
+            'attachment_url', 'created_at', 'time_ago', 'updated_at'
         ]
-        read_only_fields = ['author']
+        read_only_fields = ['author', 'created_at', 'updated_at']
 
     def get_attachment_url(self, obj):
         if obj.attachment:
@@ -43,33 +47,47 @@ class ReportCommentSerializer(serializers.ModelSerializer):
 
 class ReportTemplateSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     report_type_display = serializers.CharField(source='get_report_type_display', read_only=True)
 
     class Meta:
         model = ReportTemplate
         fields = [
             'id', 'name', 'description', 'content_template',
-            'report_type', 'report_type_display', 'is_active',
-            'created_by', 'created_at', 'updated_at'
+            'report_type', 'report_type_display', 'sections',
+            'is_active', 'created_by', 'created_by_name',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_by']
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
+
+    def validate_sections(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Template must have at least one section"
+            )
+        return value
 
 class ReportSerializer(serializers.ModelSerializer):
-    student = serializers.StringRelatedField(read_only=True)
-    internship = serializers.StringRelatedField(read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    student_id = serializers.CharField(source='student.student_id', read_only=True)
     report_type_display = serializers.CharField(source='get_report_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
         fields = [
-            'id', 'title', 'content', 'student', 'internship',
-            'report_type', 'report_type_display', 'status',
-            'status_display', 'feedback', 'file', 'file_url',
-            'submission_date', 'review_date', 'created_at', 'updated_at'
+            'id', 'title', 'content', 'student', 'student_name',
+            'student_id', 'internship', 'report_type',
+            'report_type_display', 'status', 'status_display',
+            'feedback', 'file', 'file_url', 'submission_date',
+            'review_date', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['student', 'status', 'submission_date', 'review_date', 'created_at', 'updated_at']
+        read_only_fields = [
+            'student', 'student_name', 'student_id',
+            'submission_date', 'review_date', 'created_at',
+            'updated_at'
+        ]
 
     def get_file_url(self, obj):
         if obj.file and hasattr(obj.file, 'url'):

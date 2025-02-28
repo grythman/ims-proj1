@@ -1,121 +1,86 @@
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../UI/Card'
-import { Button } from '../UI/Button'
-import { GraduationCap, Star } from 'lucide-react'
-import { toast } from 'react-hot-toast'
-import studentApi from '../../services/studentApi'
+import React from 'react';
+import { Star, GraduationCap } from 'lucide-react';
+import { Card } from '../UI/Card';
 
-const ViewTeacherEvaluation = () => {
-  const [evaluation, setEvaluation] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    const fetchEvaluation = async () => {
-      try {
-        const data = await studentApi.evaluations.getTeacherEvaluation()
-        setEvaluation(data)
-      } catch (err) {
-        setError('Failed to load teacher evaluation')
-        toast.error('Failed to load teacher evaluation')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchEvaluation()
-  }, [])
-
-  const renderStars = (score) => {
-    return [...Array(5)].map((_, index) => (
-      <Star
-        key={index}
-        className={`h-4 w-4 ${
-          index < score
-            ? 'text-yellow-400 fill-current'
-            : 'text-gray-300'
-        }`}
-      />
-    ))
-  }
-
+const ViewTeacherEvaluation = ({ detailed, onClose }) => {
   return (
-    <Card className="group relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 opacity-0 transition-opacity group-hover:opacity-100" />
-      <CardHeader>
-        <div className="rounded-lg bg-yellow-500/10 p-2 w-fit">
-          <GraduationCap className="h-6 w-6 text-yellow-500" />
+    <Card className="overflow-hidden">
+      <div className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <GraduationCap className="h-5 w-5 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900">
+              Teacher Evaluation
+            </h3>
+          </div>
+          <div className="flex items-center">
+            <Star className="h-5 w-5 text-yellow-400" />
+            <span className="ml-1 text-sm font-medium text-gray-900">4.8</span>
+          </div>
         </div>
-        <CardTitle className="mt-4">Teacher's Evaluation</CardTitle>
-        <CardDescription>View feedback from your teacher</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : evaluation ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Grade</p>
-              <div className="flex items-center space-x-1">
-                {renderStars(evaluation.grade)}
-                <span className="ml-2 text-sm font-medium">
-                  {evaluation.grade}/5
-                </span>
-              </div>
+        <div className="mt-4 space-y-4">
+          <div>
+            <p className="text-sm text-gray-500">Academic Performance</p>
+            <div className="mt-1 flex items-center">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <Star
+                  key={rating}
+                  className={`h-4 w-4 ${
+                    rating <= 5 ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                />
+              ))}
             </div>
-            
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Comments</p>
-              <p className="text-sm">{evaluation.comments}</p>
-            </div>
-
-            {evaluation.recommendations && (
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Recommendations</p>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  {evaluation.recommendations.map((rec, index) => (
-                    <li key={index} className="text-gray-600">{rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {evaluation.improvements && (
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Areas for Improvement</p>
-                <div className="flex flex-wrap gap-2">
-                  {evaluation.improvements.map((area, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full text-xs"
-                    >
-                      {area}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-        ) : (
-          <p className="text-gray-500">No evaluation available yet.</p>
-        )}
-        
-        <Button
-          variant="secondary"
-          className="w-full mt-4 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500"
-          disabled={!evaluation}
-        >
-          View Full Evaluation
-        </Button>
-      </CardContent>
+          <div>
+            <p className="text-sm text-gray-500">Professional Growth</p>
+            <div className="mt-1 flex items-center">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <Star
+                  key={rating}
+                  className={`h-4 w-4 ${
+                    rating <= 4 ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Report Quality</p>
+            <div className="mt-1 flex items-center">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <Star
+                  key={rating}
+                  className={`h-4 w-4 ${
+                    rating <= 5 ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Learning Objectives</p>
+            <div className="mt-1 flex items-center">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <Star
+                  key={rating}
+                  className={`h-4 w-4 ${
+                    rating <= 5 ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-sm text-gray-500">Comments</p>
+            <p className="mt-1 text-sm text-gray-900">
+              Excellent academic performance and professional development. Reports are well-written and demonstrate clear understanding of concepts.
+            </p>
+          </div>
+        </div>
+      </div>
     </Card>
-  )
-}
+  );
+};
 
-export default ViewTeacherEvaluation
+export default ViewTeacherEvaluation;

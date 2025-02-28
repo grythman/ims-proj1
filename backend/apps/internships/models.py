@@ -337,3 +337,62 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} at {self.created_at}"
+
+class InternshipApplication(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('under_review', 'Under Review'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected')
+    ]
+
+    student = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        related_name='applications'
+    )
+    internship = models.ForeignKey(
+        Internship,
+        on_delete=models.CASCADE,
+        related_name='applications'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    cv = models.FileField(
+        upload_to='applications/cv/%Y/%m/',
+        null=True,
+        blank=True
+    )
+    cover_letter = models.TextField(blank=True)
+    feedback = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='reviewed_applications'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['student', 'internship']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['internship', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} - {self.internship.title}"
+
+    def save(self, *args, **kwargs):
+        # If status is being changed to accepted/rejected, set reviewed_at
+        if self.pk:
+            old_instance = InternshipApplication.objects.get(pk=self.pk)
+            if old_instance.status != self.status and self.status in ['accepted', 'rejected']:
+                self.reviewed_at = timezone.now()
+        super().save(*args, **kwargs)

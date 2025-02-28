@@ -5,6 +5,7 @@ import StudentDashboard from '../pages/dashboard/StudentDashboard';
 import Reports from '../pages/reports/Reports';
 import ReportDetails from '../pages/reports/ReportDetails';
 import SubmitReport from '../pages/reports/SubmitReport';
+import ReviewReportsPage from '../pages/reports/ReviewReportsPage';
 
 const AppRoutes = () => {
   return (
@@ -15,6 +16,7 @@ const AppRoutes = () => {
           <Route path="reports" element={<Reports />} />
           <Route path="reports/:id" element={<ReportDetails />} />
           <Route path="reports/submit" element={<SubmitReport />} />
+          <Route path="reports/review" element={<ReviewReportsPage />} />
           {/* Other student routes */}
         </Routes>
       </StudentDashboardLayout>} />

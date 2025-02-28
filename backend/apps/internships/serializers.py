@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report, Message
+from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report, Message, InternshipApplication
 from apps.users.serializers import UserSerializer
 from apps.companies.serializers import OrganizationSerializer
 from apps.reports.serializers import ReportSerializer
@@ -431,3 +431,51 @@ class MessageSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['sender', 'created_at', 'updated_at']
+
+class InternshipApplicationSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    internship_title = serializers.CharField(source='internship.title', read_only=True)
+    company_name = serializers.CharField(source='internship.organization.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    cv_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InternshipApplication
+        fields = [
+            'id', 'student', 'student_name', 'internship',
+            'internship_title', 'company_name', 'status',
+            'status_display', 'cv', 'cv_url', 'cover_letter',
+            'feedback', 'reviewed_by', 'reviewed_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'student', 'reviewed_by', 'reviewed_at',
+            'created_at', 'updated_at'
+        ]
+
+    def get_cv_url(self, obj):
+        if obj.cv:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.cv.url)
+        return None
+
+    def validate(self, data):
+        # Check if student already applied to this internship
+        student = self.context['request'].user
+        internship = data.get('internship')
+        
+        if self.instance is None:  # Only check on creation
+            if InternshipApplication.objects.filter(
+                student=student,
+                internship=internship
+            ).exists():
+                raise serializers.ValidationError(
+                    'You have already applied for this internship'
+                )
+        
+        return data
+
+    def create(self, validated_data):
+        validated_data['student'] = self.context['request'].user
+        return super().create(validated_data)

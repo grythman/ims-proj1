@@ -6,6 +6,42 @@ from apps.internships.models import Internship
 
 User = settings.AUTH_USER_MODEL
 
+class ReportTemplate(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    content_template = models.TextField()
+    report_type = models.CharField(
+        max_length=10,
+        choices=[
+            ('weekly', 'Weekly Report'),
+            ('monthly', 'Monthly Report'),
+            ('final', 'Final Report')
+        ]
+    )
+    sections = models.JSONField(default=list)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_templates'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['report_type', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_report_type_display()})"
+
+    def clean(self):
+        if not self.sections:
+            raise ValidationError("Template must have at least one section")
+
 class Report(models.Model):
     STATUS_DRAFT = 'draft'
     STATUS_PENDING = 'pending'
@@ -86,26 +122,3 @@ class ReportComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author.username} on {self.report.title}"
-
-class ReportTemplate(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
-    content_template = models.TextField()
-    report_type = models.CharField(max_length=10, choices=Report.TYPE_CHOICES)
-    is_active = models.BooleanField(default=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['report_type', 'is_active']),
-        ]
-
-    def __str__(self):
-        return self.name

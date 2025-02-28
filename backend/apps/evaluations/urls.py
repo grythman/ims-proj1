@@ -3,8 +3,10 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register(r'evaluations', views.EvaluationViewSet, basename='evaluation')
-router.register(r'criteria', views.EvaluationCriteriaViewSet, basename='evaluation-criteria')
+router.register(r'criteria', views.EvaluationCriteriaViewSet, basename='criteria')
+router.register(r'scores', views.EvaluationScoreViewSet, basename='score')
+router.register(r'attachments', views.EvaluationAttachmentViewSet, basename='attachment')
+router.register(r'', views.EvaluationViewSet, basename='evaluation')
 
 app_name = 'evaluations'
 

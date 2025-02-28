@@ -28,9 +28,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     const handleRoleBasedRedirect = (userType) => {
+        console.log('Handling redirect for user type:', userType);
         switch (userType) {
             case 'student':
-                return '/dashboard';
+                return '/student/dashboard';
             case 'mentor':
                 return '/mentor/dashboard';
             case 'teacher':
@@ -38,7 +39,8 @@ export const AuthProvider = ({ children }) => {
             case 'admin':
                 return '/admin/dashboard';
             default:
-                return '/dashboard';
+                console.warn('Unknown user type:', userType);
+                return '/';
         }
     };
 

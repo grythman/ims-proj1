@@ -2,14 +2,11 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Create a router for ViewSet based views
 router = DefaultRouter()
 router.register(r'mentor/dashboard', views.MentorDashboardView, basename='mentor-dashboard')
+router.register(r'applications', views.InternshipApplicationViewSet, basename='application')
 
 urlpatterns = [
-    # Include router URLs
-    path('', include(router.urls)),
-    
     # Teacher specific endpoints
     path('teacher/dashboard/', views.TeacherDashboardView.as_view(), name='teacher-dashboard'),
     path('teacher/pending-reports/', views.TeacherViewSet.as_view({'get': 'pending_reports'}), name='teacher-pending-reports'),
@@ -22,7 +19,7 @@ urlpatterns = [
     path('register/', views.InternshipRegistrationView.as_view(), name='internship-registration'),
     path('my-internship/', views.CurrentInternshipView.as_view(), name='current-internship'),
     
-    # Mentor specific endpoints (non-ViewSet)
+    # Mentor specific endpoints
     path('mentor/evaluate-report/<int:pk>/', views.MentorReportEvaluationView.as_view(), name='mentor-evaluate-report'),
     
     # ViewSet based endpoints
@@ -44,4 +41,7 @@ urlpatterns = [
         'get': 'list',
         'post': 'create'
     }), name='internship-evaluations'),
+    
+    # Include router URLs
+    path('', include(router.urls)),
 ] 

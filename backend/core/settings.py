@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
+    'channels',
     'apps.users.apps.UsersConfig',
     'apps.companies.apps.CompaniesConfig',
     'apps.internships.apps.InternshipsConfig',
@@ -55,6 +56,8 @@ INSTALLED_APPS = [
     'apps.reports.apps.ReportsConfig',
     'apps.evaluations.apps.EvaluationsConfig',
     'rest_framework.authtoken',
+    'apps.analytics',
+    'apps.chat',
 ]
 
 MIDDLEWARE = [

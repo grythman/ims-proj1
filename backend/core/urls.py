@@ -36,6 +36,8 @@ urlpatterns = [
     path('api/dashboard/', include('apps.dashboard.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/evaluations/', include('apps.evaluations.urls')),
+    path('api/chat/', include('apps.chat.urls')),
+    path('api/analytics/', include('apps.analytics.urls')),
 ]
 
 if settings.DEBUG:

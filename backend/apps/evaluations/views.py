@@ -2,41 +2,180 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q
-from .models import Evaluation, EvaluationCriteria
+from django.db.models import Q, Avg, Count
+from django.utils import timezone
+from .models import (
+    Evaluation,
+    EvaluationCriteria,
+    EvaluationScore,
+    EvaluationAttachment
+)
 from .serializers import (
     EvaluationSerializer,
     EvaluationCreateSerializer,
-    EvaluationCriteriaSerializer
+    EvaluationCriteriaSerializer,
+    EvaluationScoreSerializer,
+    EvaluationAttachmentSerializer
 )
-from .permissions import CanCreateEvaluation, CanViewEvaluation
+from .permissions import CanCreateEvaluation, CanViewEvaluation, IsEvaluator
 
 # Create your views here.
 
 class EvaluationViewSet(viewsets.ModelViewSet):
     serializer_class = EvaluationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsEvaluator]
 
     def get_queryset(self):
         user = self.request.user
-        if user.user_type == 'student':
-            return Evaluation.objects.filter(student=user).select_related('evaluator', 'internship')
-        elif user.user_type in ['mentor', 'teacher']:
-            return Evaluation.objects.filter(evaluator=user).select_related('student', 'internship')
+        if user.user_type == 'mentor':
+            return Evaluation.objects.filter(
+                evaluator=user,
+                evaluator_type='mentor'
+            )
+        elif user.user_type == 'teacher':
+            return Evaluation.objects.filter(
+                evaluator=user,
+                evaluator_type='teacher'
+            )
         return Evaluation.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(evaluator=self.request.user)
+        evaluation = serializer.save(
+            evaluator=self.request.user,
+            evaluator_type=self.request.user.user_type
+        )
+
+        # Create scores for each criteria
+        criteria = EvaluationCriteria.objects.filter(
+            evaluator_type=evaluation.evaluator_type
+        )
+        for criterion in criteria:
+            EvaluationScore.objects.create(
+                evaluation=evaluation,
+                criteria=criterion,
+                score=0
+            )
+
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        evaluation = self.get_object()
+        
+        if evaluation.status != 'draft':
+            return Response(
+                {'error': 'Only draft evaluations can be submitted'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate all criteria have scores
+        missing_scores = evaluation.scores.filter(score=0).exists()
+        if missing_scores:
+            return Response(
+                {'error': 'All criteria must be scored before submission'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        evaluation.status = 'submitted'
+        evaluation.submission_date = timezone.now()
+        evaluation.save()
+
+        return Response(EvaluationSerializer(evaluation).data)
+
+    @action(detail=True)
+    def scores(self, request, pk=None):
+        evaluation = self.get_object()
+        scores = evaluation.scores.all()
+        return Response(EvaluationScoreSerializer(scores, many=True).data)
+
+    @action(detail=True, methods=['post'])
+    def update_scores(self, request, pk=None):
+        evaluation = self.get_object()
+        
+        if evaluation.status != 'draft':
+            return Response(
+                {'error': 'Can only update scores for draft evaluations'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        scores_data = request.data.get('scores', [])
+        for score_data in scores_data:
+            criteria_id = score_data.get('criteria')
+            score_value = score_data.get('score')
+            comments = score_data.get('comments', '')
+
+            try:
+                score = evaluation.scores.get(criteria_id=criteria_id)
+                score.score = score_value
+                score.comments = comments
+                score.save()
+            except EvaluationScore.DoesNotExist:
+                continue
+
+        return Response(EvaluationSerializer(evaluation).data)
+
+    @action(detail=False)
+    def statistics(self, request):
+        user = request.user
+        evaluations = self.get_queryset()
+
+        stats = {
+            'total_evaluations': evaluations.count(),
+            'pending_evaluations': evaluations.filter(status='draft').count(),
+            'submitted_evaluations': evaluations.filter(status='submitted').count(),
+            'average_scores': {}
+        }
+
+        # Calculate average scores per criteria
+        criteria = EvaluationCriteria.objects.filter(
+            evaluator_type=user.user_type
+        )
+        for criterion in criteria:
+            avg_score = EvaluationScore.objects.filter(
+                evaluation__in=evaluations,
+                criteria=criterion
+            ).aggregate(avg=Avg('score'))['avg'] or 0
+            stats['average_scores'][criterion.name] = round(avg_score, 2)
+
+        return Response(stats)
 
 class EvaluationCriteriaViewSet(viewsets.ModelViewSet):
-    queryset = EvaluationCriteria.objects.filter(is_active=True)
     serializer_class = EvaluationCriteriaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'destroy']:
-            return [permissions.IsAdminUser()]
-        return super().get_permissions()
+    def get_queryset(self):
+        queryset = EvaluationCriteria.objects.all()
+        evaluator_type = self.request.query_params.get('evaluator_type')
+        if evaluator_type:
+            queryset = queryset.filter(evaluator_type=evaluator_type)
+        return queryset
+
+class EvaluationScoreViewSet(viewsets.ModelViewSet):
+    serializer_class = EvaluationScoreSerializer
+    permission_classes = [permissions.IsAuthenticated, IsEvaluator]
+
+    def get_queryset(self):
+        return EvaluationScore.objects.filter(
+            evaluation__evaluator=self.request.user
+        )
+
+class EvaluationAttachmentViewSet(viewsets.ModelViewSet):
+    serializer_class = EvaluationAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsEvaluator]
+
+    def get_queryset(self):
+        return EvaluationAttachment.objects.filter(
+            evaluation__evaluator=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        evaluation_id = self.request.data.get('evaluation')
+        evaluation = Evaluation.objects.get(id=evaluation_id)
+        
+        if evaluation.evaluator != self.request.user:
+            raise permissions.PermissionDenied(
+                "You can only add attachments to your own evaluations"
+            )
+            
+        serializer.save()
 
 class MentorEvaluationsView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]

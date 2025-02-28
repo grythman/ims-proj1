@@ -21,6 +21,8 @@ import { Button } from '../../components/UI/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/UI/Card';
 import { useAuth } from '../../context/AuthContext';
 import studentApi from '../../services/studentApi';
+import RegisterInternship from '../../components/Internships/RegisterInternship';
+import SubmitReport from '../../components/Reports/SubmitReport';
 
 // Update StatCard to use emerald color scheme
 const StatCard = ({ title, value, icon: Icon, description, onClick }) => (
@@ -52,6 +54,8 @@ const StudentDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [showSubmitReport, setShowSubmitReport] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -75,6 +79,12 @@ const StudentDashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  const handleInternshipRegistered = () => {
+    setShowRegisterForm(false);
+    fetchDashboardData();
+    toast.success('Internship registered successfully!');
+  };
 
   if (loading) {
     return (
@@ -135,14 +145,14 @@ const StudentDashboard = () => {
         </div>
         <div className="flex space-x-4">
           <Button
-            onClick={() => handleOpenModal('submitReport')}
+            onClick={() => setShowSubmitReport(true)}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <FileText className="h-4 w-4 mr-2" />
             New Report
           </Button>
           <Button
-            onClick={() => handleOpenModal('registerInternship')}
+            onClick={() => setShowRegisterForm(true)}
             variant="outline"
             className="text-emerald-600 hover:bg-emerald-50"
           >
@@ -151,6 +161,18 @@ const StudentDashboard = () => {
           </Button>
         </div>
       </div>
+
+      {showRegisterForm && (
+        <div className="mb-8">
+          <RegisterInternship onSuccess={handleInternshipRegistered} />
+        </div>
+      )}
+
+      {showSubmitReport && (
+        <div className="mb-8">
+          <SubmitReport onClose={() => setShowSubmitReport(false)} />
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -233,55 +255,6 @@ const StudentDashboard = () => {
       <div className="mt-8" onClick={() => handleOpenModal('preliminaryCheck')}>
         <PreliminaryReportCheck />
       </div>
-
-      {/* Modals */}
-      {activeModal === 'submitReport' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <SubmitReport onClose={handleCloseModal} />
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'registerInternship' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <RegisterInternship onClose={handleCloseModal} />
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'mentorEvaluation' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <ViewMentorEvaluation onClose={handleCloseModal} detailed />
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'teacherEvaluation' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <ViewTeacherEvaluation onClose={handleCloseModal} detailed />
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'preliminaryCheck' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <PreliminaryReportCheck onClose={handleCloseModal} detailed />
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'internshipDuration' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-            <ViewInternshipDuration onClose={handleCloseModal} detailed />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

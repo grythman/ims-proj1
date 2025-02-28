@@ -5,7 +5,7 @@ from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
-from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report, Message
+from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report, Message, InternshipApplication
 from .serializers import (
     InternshipSerializer, 
     InternshipCreateSerializer,
@@ -23,7 +23,8 @@ from .serializers import (
     ReportEvaluationSerializer,
     DashboardSerializer,
     MessageSerializer,
-    StudentProfileSerializer
+    StudentProfileSerializer,
+    InternshipApplicationSerializer
 )
 from .permissions import IsInternshipParticipant, IsAgreementParticipant, IsTeacher, IsStudent
 from apps.notifications.services import NotificationService
@@ -35,10 +36,8 @@ from django.core.exceptions import ValidationError
 from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from apps.notifications.models import Notification
-import logging
 
 User = get_user_model()
-logger = logging.getLogger(__name__)
 
 class InternshipViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsInternshipParticipant]
@@ -1000,7 +999,7 @@ class MentorDashboardView(viewsets.ViewSet):
             # Get all active internships where user is mentor
             internships = Internship.objects.filter(
                 mentor=user,
-                status='active'
+                status=Internship.STATUS_ACTIVE
             ).select_related('student', 'organization')
 
             # Get pending reports count
@@ -1032,8 +1031,8 @@ class MentorDashboardView(viewsets.ViewSet):
                 'students': [
                     {
                         'id': internship.student.id,
-                        'name': internship.student.get_full_name(),
-                        'company': internship.organization.name,
+                        'name': f"{internship.student.first_name} {internship.student.last_name}",
+                        'company': internship.organization.name if internship.organization else None,
                         'start_date': internship.start_date,
                         'end_date': internship.end_date
                     }
@@ -1048,7 +1047,9 @@ class MentorDashboardView(viewsets.ViewSet):
             return Response(data)
             
         except Exception as e:
-            logger.error(f"Error in MentorDashboardView.list: {str(e)}")
+            print(f"Error in MentorDashboardView list: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return Response({
                 'error': 'Failed to load dashboard data'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1065,33 +1066,37 @@ class MentorDashboardView(viewsets.ViewSet):
             # Get statistics for the last 30 days
             thirty_days_ago = timezone.now() - timedelta(days=30)
 
-            # Get all internships for this mentor
-            internships = Internship.objects.filter(mentor=user)
-            active_internships = internships.filter(status='active')
-
-            # Get reports for this mentor
-            reports = Report.objects.filter(internship__mentor=user)
-            pending_reports = reports.filter(status='pending')
-            recent_reports = reports.filter(created_at__gte=thirty_days_ago)
-            recent_evaluations = reports.filter(
-                status='approved',
-                updated_at__gte=thirty_days_ago
-            )
-
             stats = {
-                'total_students': internships.count(),
-                'active_students': active_internships.count(),
-                'total_reports': reports.count(),
-                'pending_reviews': pending_reports.count(),
+                'total_students': Internship.objects.filter(mentor=user).count(),
+                'active_students': Internship.objects.filter(
+                    mentor=user, 
+                    status=Internship.STATUS_ACTIVE
+                ).count(),
+                'total_reports': Report.objects.filter(
+                    internship__mentor=user
+                ).count(),
+                'pending_reviews': Report.objects.filter(
+                    internship__mentor=user, 
+                    status='pending'
+                ).count(),
                 'monthly_stats': {
-                    'reports_submitted': recent_reports.count(),
-                    'evaluations_completed': recent_evaluations.count()
+                    'reports_submitted': Report.objects.filter(
+                        internship__mentor=user,
+                        created_at__gte=thirty_days_ago
+                    ).count(),
+                    'evaluations_completed': Report.objects.filter(
+                        internship__mentor=user,
+                        status='approved',
+                        updated_at__gte=thirty_days_ago
+                    ).count()
                 }
             }
             return Response(stats)
             
         except Exception as e:
-            logger.error(f"Error in MentorDashboardView.stats: {str(e)}")
+            print(f"Error in MentorDashboardView stats: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return Response({
                 'error': 'Failed to load stats'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1122,7 +1127,7 @@ class MentorDashboardView(viewsets.ViewSet):
             for report in recent_reports:
                 activities.append({
                     'type': 'report_submission',
-                    'student': report.student.get_full_name(),
+                    'student': f"{report.student.first_name} {report.student.last_name}",
                     'title': report.title,
                     'status': report.status,
                     'date': report.created_at
@@ -1132,7 +1137,7 @@ class MentorDashboardView(viewsets.ViewSet):
             for report in recent_evaluations:
                 activities.append({
                     'type': 'evaluation',
-                    'student': report.student.get_full_name(),
+                    'student': f"{report.student.first_name} {report.student.last_name}",
                     'title': f"Evaluation: {report.title}",
                     'status': report.status,
                     'date': report.updated_at
@@ -1144,7 +1149,9 @@ class MentorDashboardView(viewsets.ViewSet):
             return Response(activities[:5])  # Return only the 5 most recent activities
             
         except Exception as e:
-            logger.error(f"Error in MentorDashboardView.activities: {str(e)}")
+            print(f"Error in MentorDashboardView activities: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return Response({
                 'error': 'Failed to load activities'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1224,3 +1231,84 @@ class MentorReportEvaluationView(generics.UpdateAPIView):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+
+class InternshipApplicationViewSet(viewsets.ModelViewSet):
+    serializer_class = InternshipApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'internship']
+    search_fields = ['student__first_name', 'student__last_name', 'internship__title']
+    ordering_fields = ['created_at', 'updated_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_type == 'student':
+            return InternshipApplication.objects.filter(
+                student=user
+            ).select_related(
+                'internship',
+                'internship__organization',
+                'reviewed_by'
+            )
+        elif user.user_type == 'mentor':
+            return InternshipApplication.objects.filter(
+                internship__mentor=user
+            ).select_related(
+                'student',
+                'internship',
+                'internship__organization',
+                'reviewed_by'
+            )
+        return InternshipApplication.objects.none()
+
+    def perform_create(self, serializer):
+        application = serializer.save()
+        
+        # Create notification for mentor
+        if application.internship.mentor:
+            NotificationService.create_notification(
+                recipient=application.internship.mentor,
+                title='New Internship Application',
+                message=f'{application.student.get_full_name()} applied for {application.internship.title}',
+                notification_type='application'
+            )
+
+    @action(detail=True, methods=['POST'])
+    def review(self, request, pk=None):
+        application = self.get_object()
+        
+        if request.user != application.internship.mentor:
+            return Response(
+                {'error': 'Only the mentor can review applications'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        if application.status not in ['pending', 'under_review']:
+            return Response(
+                {'error': 'Can only review pending or under review applications'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_status = request.data.get('status')
+        if new_status not in ['accepted', 'rejected']:
+            return Response(
+                {'error': 'Invalid status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        application.status = new_status
+        application.feedback = request.data.get('feedback', '')
+        application.reviewed_by = request.user
+        application.reviewed_at = timezone.now()
+        application.save()
+
+        # Create notification for student
+        NotificationService.create_notification(
+            recipient=application.student,
+            title='Application Update',
+            message=f'Your application for {application.internship.title} has been {new_status}',
+            notification_type='application_update'
+        )
+
+        serializer = self.get_serializer(application)
+        return Response(serializer.data)
