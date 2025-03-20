@@ -27,19 +27,18 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     };
 
-    const handleRoleBasedRedirect = (userType) => {
+    const handleRedirect = (userType) => {
         console.log('Handling redirect for user type:', userType);
         switch (userType) {
             case 'student':
                 return '/student/dashboard';
-            case 'mentor':
-                return '/mentor/dashboard';
             case 'teacher':
                 return '/teacher/dashboard';
+            case 'mentor':
+                return '/mentor/dashboard';
             case 'admin':
                 return '/admin/dashboard';
             default:
-                console.warn('Unknown user type:', userType);
                 return '/';
         }
     };
@@ -54,7 +53,7 @@ export const AuthProvider = ({ children }) => {
             if (response?.status === 'success' && response?.data?.access_token) {
                 localStorage.setItem('token', response.data.access_token);
                 setUser(response.data.user);
-                const redirectPath = handleRoleBasedRedirect(response.data.user.user_type);
+                const redirectPath = handleRedirect(response.data.user.user_type);
                 console.log('Login successful, redirecting to:', redirectPath);
                 return {
                     data: response.data,

@@ -1,260 +1,289 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Button, Typography, message, Select, Input, DatePicker, Form } from 'antd';
 import {
-  BarChart3,
-  BookOpen,
-  Calendar,
-  ClipboardList,
-  FileText,
-  Users,
-  Clock,
-  TrendingUp,
-  Award,
-  CheckCircle
-} from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
-import PreliminaryReportCheck from '../../components/student/PreliminaryReportCheck';
-import ViewInternshipDuration from '../../components/student/ViewInternshipDuration';
-import ViewMentorEvaluation from '../../components/student/ViewMentorEvaluation';
-import ViewTeacherEvaluation from '../../components/student/ViewTeacherEvaluation';
-import { Button } from '../../components/UI/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/UI/Card';
-import { useAuth } from '../../context/AuthContext';
-import studentApi from '../../services/studentApi';
-import RegisterInternship from '../../components/Internships/RegisterInternship';
-import SubmitReport from '../../components/Reports/SubmitReport';
+  FileTextOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  BuildOutlined
+} from '@ant-design/icons';
+import api from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
+import './StudentDashboard.css';
 
-// Update StatCard to use emerald color scheme
-const StatCard = ({ title, value, icon: Icon, description, onClick }) => (
-  <Card className={`hover:shadow-lg transition-shadow ${onClick ? 'cursor-pointer' : ''}`}>
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-          <Icon className="h-6 w-6 text-emerald-600" />
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{title}</p>
-        </div>
-      </div>
-      {description && (
-        <p className="mt-4 text-sm text-gray-600">{description}</p>
-      )}
-    </CardContent>
-  </Card>
-);
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState({
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
+  const [mentors, setMentors] = useState([]);
+  const [form] = Form.useForm();
+  const [stats, setStats] = useState({
     reportsSubmitted: 0,
     daysRemaining: 0,
     overallProgress: 0,
-    recentActivity: []
+    tasksCompleted: '12/15'
   });
-  const [loading, setLoading] = useState(true);
-  const [activeModal, setActiveModal] = useState(null);
-  const [showRegisterForm, setShowRegisterForm] = useState(false);
-  const [showSubmitReport, setShowSubmitReport] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/v2/student/dashboard/');
+      setStats(response.data);
+    } catch (error) {
+      message.error('Өгөгдөл ачаалахад алдаа гарлаа');
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await api.get('/api/v2/organizations/');
+      setOrganizations(response.data.map(org => ({
+        value: org.id,
+        label: org.name
+      })));
+    } catch (error) {
+      message.error('Байгууллагуудын жагсаалт ачаалахад алдаа гарлаа');
+    }
+  };
+
+  const fetchMentors = async () => {
+    try {
+      const response = await api.get('/api/v2/mentors/');
+      setMentors(response.data.map(mentor => ({
+        value: mentor.id,
+        label: `${mentor.first_name} ${mentor.last_name}`
+      })));
+    } catch (error) {
+      message.error('Менторуудын жагсаалт ачаалахад алдаа гарлаа');
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const overview = await studentApi.dashboard.getOverview();
-        const stats = await studentApi.dashboard.getStats();
-        const activities = await studentApi.dashboard.getActivities();
-
-        setDashboardData({
-          ...overview,
-          ...stats,
-          recentActivity: activities
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
-  }, []);
-
-  const handleInternshipRegistered = () => {
-    setShowRegisterForm(false);
-    fetchDashboardData();
-    toast.success('Internship registered successfully!');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-      </div>
-    );
-  }
-
-  const handleOpenModal = (modalName) => {
-    setActiveModal(modalName);
-  };
-
-  const handleCloseModal = () => {
-    setActiveModal(null);
-  };
-
-  const stats = [
-    {
-      title: "Reports Submitted",
-      value: dashboardData.reportsSubmitted,
-      icon: FileText,
-      description: "Total reports submitted this semester",
-      onClick: () => handleOpenModal('submitReport')
-    },
-    {
-      title: "Days Remaining",
-      value: dashboardData.daysRemaining,
-      icon: Calendar,
-      description: "Days left in your internship",
-      onClick: () => handleOpenModal('internshipDuration')
-    },
-    {
-      title: "Overall Progress",
-      value: `${dashboardData.overallProgress}%`,
-      icon: TrendingUp,
-      description: "Your overall internship progress"
-    },
-    {
-      title: "Tasks Completed",
-      value: "12/15",
-      icon: CheckCircle,
-      description: "Weekly tasks completion rate"
+    if (showRegisterForm) {
+      fetchOrganizations();
+      fetchMentors();
     }
-  ];
+  }, [showRegisterForm]);
+
+  const handleRegisterInternship = async (values) => {
+    try {
+      await api.post('/api/v2/internships/', {
+        ...values,
+        start_date: values.start_date.format('YYYY-MM-DD'),
+        end_date: values.end_date.format('YYYY-MM-DD')
+      });
+      message.success('Дадлага амжилттай бүртгэгдлээ');
+      setShowRegisterForm(false);
+      form.resetFields();
+      fetchDashboardData();
+    } catch (error) {
+      message.error('Дадлага бүртгэхэд алдаа гарлаа');
+    }
+  };
+
+  const RegisterInternshipForm = () => (
+    <Card className="register-internship-form">
+      <Title level={4}>Дадлага бүртгүүлэх</Title>
+      <Text type="secondary" className="mb-4 block">
+        Дадлагын мэдээллээ оруулна уу
+      </Text>
+      
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleRegisterInternship}
+        className="form-content"
+      >
+        <Form.Item
+          name="organization"
+          label="Байгууллага"
+          rules={[{ required: true, message: 'Байгууллага сонгоно уу' }]}
+        >
+          <Select
+            placeholder="Байгууллага сонгох"
+            options={organizations}
+            loading={loading}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="mentor"
+          label="Ментор"
+          rules={[{ required: true, message: 'Ментор сонгоно уу' }]}
+        >
+          <Select
+            placeholder="Ментор сонгох"
+            options={mentors}
+            loading={loading}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="title"
+          label="Дадлагын нэр"
+          rules={[{ required: true, message: 'Дадлагын нэр оруулна уу' }]}
+        >
+          <Input placeholder="Жишээ нь: Програм хөгжүүлэгч" />
+        </Form.Item>
+
+        <Form.Item
+          name="description"
+          label="Тайлбар"
+          rules={[{ required: true, message: 'Тайлбар оруулна уу' }]}
+        >
+          <TextArea 
+            placeholder="Дадлагын үүрэг хариуцлагын талаар бичнэ үү..."
+            rows={4}
+          />
+        </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="start_date"
+              label="Эхлэх огноо"
+              rules={[{ required: true, message: 'Эхлэх огноо оруулна уу' }]}
+            >
+              <DatePicker className="w-full" placeholder="YYYY/MM/DD" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="end_date"
+              label="Дуусах огноо"
+              rules={[{ required: true, message: 'Дуусах огноо оруулна уу' }]}
+            >
+              <DatePicker className="w-full" placeholder="YYYY/MM/DD" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <div className="form-actions">
+          <Button onClick={() => setShowRegisterForm(false)}>
+            Цуцлах
+          </Button>
+          <Button type="primary" htmlType="submit">
+            Бүртгүүлэх
+          </Button>
+        </div>
+      </Form>
+    </Card>
+  );
+
+  const StatCard = ({ icon: Icon, title, value, color }) => (
+    <Card hoverable className="stat-card">
+      <div className="stat-content">
+        <div className={`icon-wrapper ${color}`}>
+          <Icon />
+        </div>
+        <div className="stat-text">
+          <Text className="stat-value">{value}</Text>
+          <Text className="stat-title">{title}</Text>
+        </div>
+      </div>
+    </Card>
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="flex items-center justify-between">
+    <div className="dashboard-container">
+      <div className="dashboard-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.first_name || 'Student'}! 👋
-          </h1>
-          <p className="mt-1 text-gray-500">
-            Here's what's happening with your internship today.
-          </p>
+          <Title level={2}>Тавтай морил! 👋</Title>
+          <Text type="secondary">Өнөөдрийн дадлагын явц.</Text>
         </div>
-        <div className="flex space-x-4">
-          <Button
-            onClick={() => setShowSubmitReport(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        <div className="header-actions">
+          <Button 
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={() => navigate('/dashboard/reports/submit')}
           >
-            <FileText className="h-4 w-4 mr-2" />
-            New Report
+            Шинэ тайлан
           </Button>
           <Button
+            icon={<BuildOutlined />}
             onClick={() => setShowRegisterForm(true)}
-            variant="outline"
-            className="text-emerald-600 hover:bg-emerald-50"
           >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Register Internship
+            Дадлага бүртгүүлэх
           </Button>
         </div>
       </div>
 
-      {showRegisterForm && (
-        <div className="mb-8">
-          <RegisterInternship onSuccess={handleInternshipRegistered} />
-        </div>
-      )}
+      {showRegisterForm ? (
+        <RegisterInternshipForm />
+      ) : (
+        <>
+          <Row gutter={[16, 16]} className="stats-row">
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                icon={FileTextOutlined}
+                title="Нийт тайлан"
+                value={stats.reportsSubmitted}
+                color="blue"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                icon={CalendarOutlined}
+                title="Үлдсэн хоног"
+                value={stats.daysRemaining}
+                color="green"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                icon={CheckCircleOutlined}
+                title="Явц"
+                value={`${stats.overallProgress}%`}
+                color="purple"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                icon={ClockCircleOutlined}
+                title="Даалгавар"
+                value={stats.tasksCompleted}
+                color="orange"
+              />
+            </Col>
+          </Row>
 
-      {showSubmitReport && (
-        <div className="mb-8">
-          <SubmitReport onClose={() => setShowSubmitReport(false)} />
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <div
-            key={index}
-            onClick={stat.onClick}
-            className={`${stat.onClick ? 'cursor-pointer' : ''}`}
-          >
-            <StatCard {...stat} />
-          </div>
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Progress Section */}
-        <div onClick={() => handleOpenModal('internshipDuration')} className="cursor-pointer">
-          <Card className="col-span-1 hover:shadow-lg transition-shadow">
-            <CardHeader className="border-b p-6">
-              <CardTitle className="text-lg font-semibold">Internship Progress</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-600">Overall Progress</span>
-                    <span className="text-sm font-medium text-emerald-600">{dashboardData.overallProgress}%</span>
+          <Row gutter={[16, 16]} className="content-row">
+            <Col xs={24} lg={16}>
+              <Card title="Дадлагын явц" className="progress-card">
+                <div className="progress-bar-container">
+                  <div className="progress-info">
+                    <Text>Нийт явц</Text>
+                    <Text strong>{stats.overallProgress}%</Text>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-emerald-600 h-2 rounded-full"
-                      style={{ width: `${dashboardData.overallProgress}%` }}
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ width: `${stats.overallProgress}%` }}
                     />
                   </div>
                 </div>
-                <ViewInternshipDuration />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="col-span-1">
-          <CardHeader className="border-b p-6">
-            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {dashboardData.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <activity.icon className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-500">{activity.description}</p>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(activity.timestamp).toLocaleDateString()}
-                  </div>
+                <div className="progress-details">
+                  {/* Add more progress details here */}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Evaluations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div onClick={() => handleOpenModal('mentorEvaluation')} className="cursor-pointer">
-          <ViewMentorEvaluation />
-        </div>
-        <div onClick={() => handleOpenModal('teacherEvaluation')} className="cursor-pointer">
-          <ViewTeacherEvaluation />
-        </div>
-      </div>
-
-      {/* Preliminary Report Check */}
-      <div className="mt-8" onClick={() => handleOpenModal('preliminaryCheck')}>
-        <PreliminaryReportCheck />
-      </div>
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card title="Ойрын хугацаанууд" className="deadlines-card">
+                {/* Add deadlines content here */}
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
     </div>
   );
 };

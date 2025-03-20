@@ -1,226 +1,264 @@
+import React, { useState, useEffect } from 'react';
+import { Row, Col, Card, Statistic, Table, Tag, Button, Typography, message } from 'antd';
 import {
-  BarChart3,
-  Users,
-  Calendar,
-  ClipboardCheck,
-  FileText,
-  TrendingUp,
-  Award,
-  CheckCircle,
-  GraduationCap,
-  Clock,
-  BookOpen
-} from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
-import { Button } from '../../components/UI/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/UI/Card';
-import { useAuth } from '../../context/AuthContext';
-import teacherApi from '../../services/teacherApi';
+  UserOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EyeOutlined
+} from '@ant-design/icons';
+import api from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
+import './TeacherDashboard.css';
 
-// Update StatCard to use green color scheme
-const StatCard = ({ title, value, icon: Icon, description }) => (
-  <Card className="hover:shadow-lg transition-shadow">
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-          <Icon className="h-6 w-6 text-emerald-600" />
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{title}</p>
-        </div>
-      </div>
-      {description && (
-        <p className="mt-4 text-sm text-gray-600">{description}</p>
-      )}
-    </CardContent>
-  </Card>
-);
+const { Title } = Typography;
 
 const TeacherDashboard = () => {
-  const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState({
-    totalStudents: 0,
-    pendingEvaluations: 0,
-    approvedReports: 0,
-    recentActivity: [],
-    studentPerformance: []
-  });
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeInternships: 0,
+    completedInternships: 0,
+    pendingReports: 0
+  });
 
-  useEffect(() => {
+  const [recentInternships, setRecentInternships] = useState([]);
+  const [pendingReports, setPendingReports] = useState([]);
+
     const fetchDashboardData = async () => {
       try {
-        const overview = await teacherApi.dashboard.getOverview();
-        const stats = await teacherApi.dashboard.getStats();
-        const activities = await teacherApi.dashboard.getActivities();
+      setLoading(true);
+      const [statsResponse, internshipsResponse, reportsResponse] = await Promise.all([
+        api.get('/api/v2/dashboard/stats/'),
+        api.get('/api/v2/internships/recent/'),
+        api.get('/api/v2/reports/pending/')
+      ]);
 
-        setDashboardData({
-          ...overview,
-          ...stats,
-          recentActivity: activities
-        });
+      setStats(statsResponse.data);
+      setRecentInternships(internshipsResponse.data);
+      setPendingReports(reportsResponse.data);
       } catch (error) {
+      message.error('Өгөгдөл ачаалахад алдаа гарлаа');
         console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
+  useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-      </div>
-    );
-  }
+  const handleViewInternship = (id) => {
+    navigate(`/teacher/internships/${id}`);
+  };
 
-  const stats = [
+  const handleViewReport = (id) => {
+    navigate(`/teacher/reports/${id}`);
+  };
+
+  const handleViewAllInternships = () => {
+    navigate('/teacher/internships');
+  };
+
+  const handleViewAllReports = () => {
+    navigate('/teacher/reports');
+  };
+
+  const internshipColumns = [
     {
-      title: "Total Students",
-      value: dashboardData.totalStudents,
-      icon: Users,
-      description: "Students under your supervision"
+      title: 'Оюутан',
+      dataIndex: 'student',
+      key: 'student',
+      width: '20%',
     },
     {
-      title: "Pending Evaluations",
-      value: dashboardData.pendingEvaluations,
-      icon: ClipboardCheck,
-      description: "Evaluations waiting for review"
+      title: 'Компани',
+      dataIndex: 'company',
+      key: 'company',
+      width: '30%',
     },
     {
-      title: "Approved Reports",
-      value: dashboardData.approvedReports,
-      icon: CheckCircle,
-      description: "Reports approved this semester"
+      title: 'Эхэлсэн огноо',
+      dataIndex: 'startDate',
+      key: 'startDate',
+      width: '20%',
     },
     {
-      title: "Average Performance",
-      value: "85%",
-      icon: Award,
-      description: "Overall student performance"
+      title: 'Төлөв',
+      dataIndex: 'status',
+      key: 'status',
+      width: '15%',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'success' : 'warning'}>
+          {status === 'active' ? 'Идэвхтэй' : 'Дууссан'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Үйлдэл',
+      key: 'action',
+      width: '15%',
+      render: (_, record) => (
+        <Button 
+          type="link" 
+          icon={<EyeOutlined />}
+          onClick={() => handleViewInternship(record.id)}
+        >
+          Дэлгэрэнгүй
+        </Button>
+      ),
+    }
+  ];
+
+  const reportColumns = [
+    {
+      title: 'Оюутан',
+      dataIndex: 'student',
+      key: 'student',
+      width: '20%',
+    },
+    {
+      title: 'Тайлангийн нэр',
+      dataIndex: 'title',
+      key: 'title',
+      width: '35%',
+    },
+    {
+      title: 'Илгээсэн огноо',
+      dataIndex: 'submittedDate',
+      key: 'submittedDate',
+      width: '15%',
+    },
+    {
+      title: 'Төрөл',
+      dataIndex: 'type',
+      key: 'type',
+      width: '15%',
+      render: (type) => (
+        <Tag color={type === 'weekly' ? 'processing' : 'purple'}>
+          {type === 'weekly' ? 'Долоо хоног' : 'Сар'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Үйлдэл',
+      key: 'action',
+      width: '15%',
+      render: (_, record) => (
+        <Button
+          type="link" 
+          icon={<EyeOutlined />}
+          onClick={() => handleViewReport(record.id)}
+        >
+          Хянах
+        </Button>
+      ),
     }
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.first_name || 'Teacher'}! 👋
-          </h1>
-          <p className="mt-1 text-gray-500">
-            Monitor and evaluate your students' internship progress.
-          </p>
-        </div>
-        <Button
-          as={Link}
-          to="/teacher/evaluations/new"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          New Evaluation
-        </Button>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Student Performance Section */}
-        <Card className="col-span-1">
-          <CardHeader className="border-b p-6">
-            <CardTitle className="text-lg font-semibold">Student Performance</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {dashboardData.studentPerformance?.map((student, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">{student.name}</span>
-                    <span className="text-sm font-medium text-emerald-600">{student.score}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-emerald-600 h-2 rounded-full"
-                      style={{ width: `${student.score}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
+    <div style={{ padding: '24px' }}>
+      <Title level={2} style={{ marginBottom: '24px', color: '#1890ff' }}>
+        Багшийн хяналтын самбар
+      </Title>
+      
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable loading={loading} className="dashboard-stat-card">
+            <Statistic
+              title={<span style={{ fontSize: '16px', color: '#8c8c8c' }}>Нийт оюутан</span>}
+              value={stats.totalStudents}
+              prefix={<UserOutlined style={{ color: '#1890ff' }} />}
+              valueStyle={{ color: '#262626', fontSize: '24px' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable loading={loading} className="dashboard-stat-card">
+            <Statistic
+              title={<span style={{ fontSize: '16px', color: '#8c8c8c' }}>Идэвхтэй дадлага</span>}
+              value={stats.activeInternships}
+              prefix={<ClockCircleOutlined style={{ color: '#52c41a' }} />}
+              valueStyle={{ color: '#52c41a', fontSize: '24px' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable loading={loading} className="dashboard-stat-card">
+            <Statistic
+              title={<span style={{ fontSize: '16px', color: '#8c8c8c' }}>Дууссан дадлага</span>}
+              value={stats.completedInternships}
+              prefix={<CheckCircleOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#262626', fontSize: '24px' }}
+            />
         </Card>
-
-        {/* Recent Activity */}
-        <Card className="col-span-1">
-          <CardHeader className="border-b p-6">
-            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {dashboardData.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <activity.icon className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-500">{activity.description}</p>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(activity.timestamp).toLocaleDateString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable loading={loading} className="dashboard-stat-card">
+            <Statistic
+              title={<span style={{ fontSize: '16px', color: '#8c8c8c' }}>Хүлээгдэж буй тайлан</span>}
+              value={stats.pendingReports}
+              prefix={<BookOutlined style={{ color: '#f5222d' }} />}
+              valueStyle={{ color: '#f5222d', fontSize: '24px' }}
+            />
         </Card>
-      </div>
+        </Col>
+      </Row>
 
-      {/* Pending Evaluations Section */}
-      <Card>
-        <CardHeader className="border-b p-6">
-          <CardTitle className="text-lg font-semibold">Pending Evaluations</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {dashboardData.pendingEvaluationsList?.map((evaluation, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <BookOpen className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{evaluation.studentName}</p>
-                    <p className="text-sm text-gray-500">{evaluation.type}</p>
-                  </div>
-                </div>
-                <Button
-                  as={Link}
-                  to={`/teacher/evaluations/${evaluation.id}`}
-                  variant="outline"
-                  className="text-emerald-600 hover:bg-emerald-50"
-                >
-                  Evaluate
+      <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
+        <Col xs={24} lg={12}>
+          <Card 
+            title={<span style={{ fontSize: '16px', fontWeight: 500 }}>Сүүлийн дадлагууд</span>}
+            extra={
+              <Button type="link" onClick={handleViewAllInternships}>
+                Бүгдийг үзэх
+              </Button>
+            }
+            className="dashboard-table-card"
+          >
+            <Table
+              loading={loading}
+              columns={internshipColumns}
+              dataSource={recentInternships}
+              pagination={{
+                pageSize: 5,
+                total: recentInternships.length,
+                showSizeChanger: false,
+                size: 'small'
+              }}
+              size="small"
+              rowKey="id"
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card 
+            title={<span style={{ fontSize: '16px', fontWeight: 500 }}>Хүлээгдэж буй тайлангууд</span>}
+            extra={
+              <Button type="link" onClick={handleViewAllReports}>
+                Бүгдийг үзэх
                 </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
+            }
+            className="dashboard-table-card"
+          >
+            <Table
+              loading={loading}
+              columns={reportColumns}
+              dataSource={pendingReports}
+              pagination={{
+                pageSize: 5,
+                total: pendingReports.length,
+                showSizeChanger: false,
+                size: 'small'
+              }}
+              size="small"
+              rowKey="id"
+            />
       </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

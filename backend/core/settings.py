@@ -15,6 +15,7 @@ import os
 import sys
 from datetime import timedelta
 from corsheaders.defaults import default_headers
+from .logging_config import LOGGING
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,18 +59,23 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'apps.analytics',
     'apps.chat',
+    'drf_spectacular',
+    'graphene_django',
+    'django_celery_results',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.APILoggingMiddleware',
     'core.middleware.DebugMiddleware',
+    'core.middleware.SecurityMiddleware',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -175,35 +181,89 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'core.authentication.CustomJWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'core.throttling.BurstAnonRateThrottle',
+        'core.throttling.SustainedAnonRateThrottle',
+        'core.throttling.BurstUserRateThrottle',
+        'core.throttling.SustainedUserRateThrottle',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'burst_anon': '20/minute',
+        'sustained_anon': '1000/day',
+        'burst_user': '60/minute',
+        'sustained_user': '10000/day',
+        'high_burst_user': '200/minute',
+        'critical_endpoint': '3/minute',
+    },
+    'THROTTLE_EXCEPTIONS': [
+        'rest_framework.exceptions.Throttled'
+    ],
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1', 'v2'],
+    'VERSION_PARAM': 'version',
 }
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'TOKEN_TYPE_CLAIM': 'token_type',
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_SECURE': True,
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 # Cache settings
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'RETRY_ON_TIMEOUT': True,
+            'MAX_CONNECTIONS': 1000,
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'KEY_PREFIX': 'ims'
+    },
+    'throttling': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/2',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'throttle'
     }
 }
+
+# Cache time to live is 15 minutes
+CACHE_TTL = 60 * 15
+
+# Cache key settings
+CACHE_KEY_PREFIX = 'ims'
+
+# Cache middleware settings
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 60 * 15
+CACHE_MIDDLEWARE_KEY_PREFIX = ''
+
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 # CSRF Settings
 CSRF_COOKIE_NAME = 'csrftoken'
@@ -247,34 +307,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'formatters': {
-        'simple': {
-            'format': '[%(levelname)s] %(message)s'
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': True,
-        },
-        'apps.dashboard': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-    },
-}
-
 # Add this line to specify the custom user model
 AUTH_USER_MODEL = 'users.User'
 
@@ -289,3 +321,35 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Frontend URL for password reset
 FRONTEND_URL = 'http://localhost:3000'  # Update this for production
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'IMS API',
+    'DESCRIPTION': 'API documentation for IMS project',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Webhook settings
+WEBHOOK_TIMEOUT = 5  # seconds
+WEBHOOK_MAX_RETRIES = 3
+WEBHOOK_RETRY_DELAY = 5  # seconds, will be multiplied by 2^retry_count
+WEBHOOK_BATCH_SIZE = 100
+
+# Async settings
+ASGI_APPLICATION = "core.asgi.application"

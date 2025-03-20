@@ -20,24 +20,53 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.users.views import PasswordResetView, PasswordResetConfirmView
+from rest_framework.routers import DefaultRouter
+from apps.companies.views_v2 import OrganizationV2ViewSet
+from apps.analytics.views import AnalyticsViewSet
+from apps.dashboard import urls as dashboard_urls
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenVerifyView,
+)
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
+from django.views.decorators.csrf import csrf_exempt
+from graphene_django.views import GraphQLView
+
+# Create versioned routers
+v1_router = DefaultRouter()
+v1_router.register(r'analytics', AnalyticsViewSet, basename='analytics')
+
+v2_router = DefaultRouter()
+v2_router.register(r'organizations', OrganizationV2ViewSet, basename='organization')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # JWT Authentication endpoints
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    # Password Reset endpoints
-    path('api/users/password-reset/', PasswordResetView.as_view(), name='password_reset'),
-    path('api/users/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-    # Your apps' URLs
-    path('api/users/', include('apps.users.urls')),
-    path('api/companies/', include('apps.companies.urls')),
-    path('api/internships/', include('apps.internships.urls')),
-    path('api/notifications/', include('apps.notifications.urls')),
-    path('api/dashboard/', include('apps.dashboard.urls')),
-    path('api/reports/', include('apps.reports.urls')),
-    path('api/evaluations/', include('apps.evaluations.urls')),
-    path('api/chat/', include('apps.chat.urls')),
-    path('api/analytics/', include('apps.analytics.urls')),
+    # API v1 URLs
+    path('api/v1/', include((v1_router.urls, 'v1'))),
+    path('api/v1/auth/', include('rest_framework.urls')),
+    path('api/v1/token/', TokenObtainPairView.as_view(), name='v1_token_obtain_pair'),
+    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='v1_token_refresh'),
+    path('api/v1/token/verify/', TokenVerifyView.as_view(), name='v1_token_verify'),
+    
+    # API v2 URLs
+    path('api/v2/', include((v2_router.urls, 'v2'))),
+    path('api/v2/auth/', include('rest_framework.urls')),
+    path('api/v2/token/', TokenObtainPairView.as_view(), name='v2_token_obtain_pair'),
+    path('api/v2/token/refresh/', TokenRefreshView.as_view(), name='v2_token_refresh'),
+    path('api/v2/token/verify/', TokenVerifyView.as_view(), name='v2_token_verify'),
+    
+    # Dashboard URLs
+    path('', include(dashboard_urls)),
+    
+    # API Schema documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True))),
 ]
 
 if settings.DEBUG:

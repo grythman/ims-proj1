@@ -7,4 +7,8 @@ class InternshipsConfig(AppConfig):
     verbose_name = 'Internships'
 
     def ready(self):
-        import apps.internships.signals
+        try:
+            import apps.internships.signals
+            print("Internship signals registered successfully")
+        except Exception as e:
+            print(f"Error registering internship signals: {str(e)}")

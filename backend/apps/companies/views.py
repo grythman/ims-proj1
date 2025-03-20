@@ -1,8 +1,15 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Organization
 from .serializers import OrganizationSerializer
 from rest_framework.exceptions import PermissionDenied
+from core.throttling import (
+    BurstUserRateThrottle,
+    SustainedUserRateThrottle,
+    CriticalEndpointRateThrottle,
+)
 
 # Create your views here.
 
@@ -21,6 +28,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [BurstUserRateThrottle, SustainedUserRateThrottle]
 
     def get_queryset(self):
         user = self.request.user
@@ -37,3 +45,23 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             serializer.save(contact_person=self.request.user)
         else:
             serializer.save()
+
+    @action(detail=True, methods=['post'], throttle_classes=[CriticalEndpointRateThrottle])
+    def activate(self, request, pk=None):
+        """
+        Critical action that needs stricter rate limiting
+        """
+        company = self.get_object()
+        company.is_active = True
+        company.save()
+        return Response({'status': 'company activated'})
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """
+        List all active companies
+        Uses default throttle classes
+        """
+        active_companies = Organization.objects.filter(is_active=True)
+        serializer = self.get_serializer(active_companies, many=True)
+        return Response(serializer.data)

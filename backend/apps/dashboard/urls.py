@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import StudentDashboardView
 
 app_name = 'dashboard'
 
@@ -12,4 +13,5 @@ urlpatterns = [
     path('teacher/evaluations/', views.TeacherEvaluationsView.as_view(), name='teacher-evaluations'),
     path('teacher/reports/', views.TeacherReportsView.as_view(), name='teacher-reports'),
     path('admin/', views.AdminDashboardView.as_view(), name='admin-dashboard'),
+    path('api/v2/student/dashboard/', StudentDashboardView.as_view(), name='student-dashboard'),
 ] 

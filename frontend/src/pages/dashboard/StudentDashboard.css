@@ -1,0 +1,259 @@
+.dashboard-container {
+  padding: 24px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Stat Cards */
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+}
+
+.icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.icon-wrapper.blue {
+  background-color: #e6f4ff;
+  color: #1890ff;
+}
+
+.icon-wrapper.green {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.icon-wrapper.purple {
+  background-color: #f9f0ff;
+  color: #722ed1;
+}
+
+.icon-wrapper.orange {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-title {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+}
+
+/* Progress Card */
+.progress-card {
+  height: 100%;
+}
+
+.progress-bar-container {
+  padding: 16px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #1890ff;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-details {
+  margin-top: 24px;
+}
+
+/* Register Internship Form */
+.register-internship-form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-content {
+  margin-top: 24px;
+}
+
+.form-item {
+  margin-bottom: 16px;
+}
+
+.form-item .ant-typography {
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .stat-card {
+    margin-bottom: 16px;
+  }
+}
+
+/* Deadlines Card */
+.deadlines-card {
+  height: 100%;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+.dashboard-stat-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-table-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Customize table styles */
+.ant-table-small .ant-table-thead > tr > th {
+  background-color: #f0f5ff;
+  padding: 12px 16px;
+  font-weight: 500;
+  color: #1890ff;
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.ant-table-small .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-table-small .ant-table-tbody > tr:hover > td {
+  background-color: #f0f5ff;
+}
+
+/* Customize tag styles */
+.ant-tag {
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Customize button styles */
+.ant-btn-link {
+  padding: 0 8px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 13px;
+}
+
+/* Card title styles */
+.ant-card-head-title {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #262626 !important;
+}
+
+/* Statistic styles */
+.ant-statistic-title {
+  margin-bottom: 8px !important;
+}
+
+.ant-statistic-content {
+  display: flex;
+  align-items: center;
+}
+
+.ant-statistic-content-suffix {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #8c8c8c;
+} 

@@ -4,82 +4,143 @@ from django.contrib.auth.hashers import make_password
 from apps.internships.models import Internship, Report
 from apps.companies.models import Organization
 from django.utils import timezone
+from datetime import timedelta
+import random
 
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Creates test data for development'
+    help = 'Тест өгөгдөл үүсгэх'
+
+    def _create_organizations(self):
+        """Тест байгууллагууд үүсгэх"""
+        organizations = []
+        company_names = [
+            'Able Software LLC',
+            'AND Global LLC',
+            'Unimedia Solutions LLC',
+            'Interactive LLC',
+            'Nest Academy',
+            'Infinite Solutions LLC',
+            'ICT Group LLC',
+            'Mongol Content LLC',
+            'Tomyo EdTech',
+            'iHotel LLC'
+        ]
+        
+        for name in company_names:
+            org = Organization.objects.create(
+                name=name,
+                description=f'{name} нь мэдээллийн технологийн компани юм.',
+                website=f'http://{name.lower().replace(" ", "")}.com',
+                is_active=True
+            )
+            organizations.append(org)
+            self.stdout.write(f'Байгууллага үүсгэлээ: {name}')
+        
+        return organizations
+
+    def _create_mentors(self):
+        """Тест менторууд үүсгэх"""
+        mentors = []
+        mentor_names = [
+            ('Бат', 'Болд'),
+            ('Сараа', 'Дорж'),
+            ('Төмөр', 'Очир'),
+            ('Нараа', 'Баяр'),
+            ('Болд', 'Баатар')
+        ]
+        
+        for i, (first_name, last_name) in enumerate(mentor_names):
+            mentor = User.objects.create_user(
+                username=f'mentor{i+1}',
+                email=f'mentor{i+1}@example.com',
+                password='password123',
+                first_name=first_name,
+                last_name=last_name,
+                user_type='mentor'
+            )
+            mentors.append(mentor)
+            self.stdout.write(f'Ментор үүсгэлээ: {first_name} {last_name}')
+        
+        return mentors
+
+    def _create_students(self):
+        """Тест оюутнууд үүсгэх"""
+        students = []
+        student_names = [
+            ('Ганаа', 'Лхагва'),
+            ('Сүхээ', 'Дорж'),
+            ('Золбоо', 'Баяр'),
+            ('Цэцгээ', 'Болд'),
+            ('Оюунаа', 'Баатар')
+        ]
+        
+        for i, (first_name, last_name) in enumerate(student_names):
+            student = User.objects.create_user(
+                username=f'student{i+1}',
+                email=f'student{i+1}@example.com',
+                password='password123',
+                first_name=first_name,
+                last_name=last_name,
+                user_type='student'
+            )
+            students.append(student)
+            self.stdout.write(f'Оюутан үүсгэлээ: {first_name} {last_name}')
+        
+        return students
+
+    def _create_internships(self, students, mentors, organizations):
+        """Тест дадлагууд үүсгэх"""
+        internship_titles = [
+            'Програм хөгжүүлэгч',
+            'Веб хөгжүүлэгч',
+            'Мобайл хөгжүүлэгч',
+            'UI/UX дизайнер',
+            'Системийн архитектор'
+        ]
+        
+        for student in students:
+            title = random.choice(internship_titles)
+            organization = random.choice(organizations)
+            mentor = random.choice(mentors)
+            
+            start_date = timezone.now().date()
+            end_date = start_date + timedelta(days=90)
+            
+            Internship.objects.create(
+                student=student,
+                mentor=mentor,
+                organization=organization,
+                title=title,
+                description=f'{title} дадлага - {organization.name}',
+                start_date=start_date,
+                end_date=end_date,
+                status=1  # 1 = active
+            )
+            self.stdout.write(f'Дадлага үүсгэлээ: {student.first_name} - {title}')
 
     def handle(self, *args, **kwargs):
-        self.stdout.write('Creating test data...')
-
         try:
-            # Create test teacher
-            teacher_password = make_password('password123')
-            teacher = User.objects.create(
-                username='teacher1',
-                email='teacher1@example.com',
-                password=teacher_password,
-                first_name='Teacher',
-                last_name='One',
-                user_type='teacher',
-                is_active=True,
-                is_staff=True
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created teacher: {teacher.username}'))
-
-            # Create test student
-            student_password = make_password('password123')
-            student = User.objects.create(
-                username='student1',
-                email='student1@example.com',
-                password=student_password,
-                first_name='Student',
-                last_name='One',
-                user_type='student',
-                is_active=True
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created student: {student.username}'))
-
-            # Create test organization
-            organization = Organization.objects.create(
-                name='Test Company',
-                description='Test Company Description',
-                website='http://example.com',
-                is_active=True
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created organization: {organization.name}'))
-
-            # Create test internship
-            internship = Internship.objects.create(
-                student=student,
-                teacher=teacher,
-                organization=organization,
-                title='Test Internship',
-                description='Test Internship Description',
-                start_date=timezone.now().date(),
-                end_date=timezone.now().date() + timezone.timedelta(days=90),
-                status='active'
-            )
-            self.stdout.write(self.style.SUCCESS(f'Created internship: {internship.title}'))
-
-            # Create test reports
-            for report_type in ['weekly', 'monthly']:
-                report = Report.objects.create(
-                    student=student,
-                    internship=internship,
-                    title=f'Test {report_type.capitalize()} Report',
-                    content=f'Test {report_type} report content',
-                    report_type=report_type,
-                    status='pending'
-                )
-                self.stdout.write(self.style.SUCCESS(f'Created report: {report.title}'))
-
-            self.stdout.write(self.style.SUCCESS('Successfully created all test data'))
-
+            # Өмнөх өгөгдлийг устгах
+            Organization.objects.all().delete()
+            User.objects.filter(user_type__in=['mentor', 'student']).delete()
+            Internship.objects.all().delete()
+            
+            self.stdout.write('Хуучин өгөгдлийг устгалаа')
+            
+            # Шинэ өгөгдөл үүсгэх
+            organizations = self._create_organizations()
+            mentors = self._create_mentors()
+            students = self._create_students()
+            self._create_internships(students, mentors, organizations)
+            
+            self.stdout.write(self.style.SUCCESS('Тест өгөгдөл амжилттай үүслээ'))
+            
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error creating test data: {str(e)}'))
-            raise e
+            self.stdout.write(
+                self.style.ERROR(f'Алдаа гарлаа: {str(e)}')
+            )
 
     def _create_user(self, username, email, password, user_type, first_name, last_name):
         try:

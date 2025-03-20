@@ -6,109 +6,58 @@ from apps.notifications.models import Notification
 from django.db.models import Count, Avg, Q
 from django.utils import timezone
 from apps.users.models import User
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class StudentDashboardView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Оюутны хяналтын самбарын мэдээлэл"""
         try:
-            print("\n=== Starting StudentDashboardView.get ===")
-            user = request.user
-            
-            # Get active internship with related data
-            internship = Internship.objects.filter(
-                student=user, 
-                status=Internship.STATUS_ACTIVE
-            ).select_related('organization').first()
+            # Оюутны идэвхтэй дадлагыг авах
+            active_internship = Internship.objects.filter(
+                student=request.user,
+                status=1  # active status
+            ).first()
 
-            # Get preliminary report
-            preliminary_report = None
-            if internship:
-                preliminary_report = PreliminaryReport.objects.filter(
-                    internship=internship
-                ).order_by('-created_at').first()
+            if not active_internship:
+                return Response({
+                    'reportsSubmitted': 0,
+                    'daysRemaining': 0,
+                    'overallProgress': 0,
+                    'tasksCompleted': '0/0'
+                })
 
-            # Get evaluations
-            teacher_evaluation = None
-            mentor_evaluation = None
-            if internship:
-                teacher_evaluation = Evaluation.objects.filter(
-                    report__internship=internship,
-                    evaluator_type='teacher'
-                ).order_by('-created_at').first()
+            # Тайлангийн тоо
+            reports_submitted = active_internship.reports.count()
 
-                mentor_evaluation = Evaluation.objects.filter(
-                    report__internship=internship,
-                    evaluator_type='mentor'
-                ).order_by('-created_at').first()
+            # Үлдсэн хоног
+            today = timezone.now().date()
+            days_remaining = (active_internship.end_date - today).days
+            if days_remaining < 0:
+                days_remaining = 0
 
-            # Get reports count
-            reports_submitted = Report.objects.filter(student=user).count()
-            
-            # Get unread notifications count
-            notifications = Notification.objects.filter(recipient=user, is_read=False).count()
+            # Дадлагын явц (90 хоногийн хувьд)
+            total_days = (active_internship.end_date - active_internship.start_date).days
+            days_passed = (today - active_internship.start_date).days
+            if days_passed < 0:
+                days_passed = 0
+            overall_progress = min(int((days_passed / total_days) * 100), 100)
 
-            # Calculate internship duration if internship exists
-            internship_duration = None
-            if internship and internship.start_date and internship.end_date:
-                total_days = (internship.end_date - internship.start_date).days
-                if total_days > 0:
-                    days_completed = (timezone.now().date() - internship.start_date).days
-                    internship_duration = {
-                        'total_days': total_days,
-                        'days_completed': max(0, min(days_completed, total_days)),
-                        'percentage': min(100, max(0, (days_completed / total_days) * 100))
-                    }
+            # Даалгаврын явц (жишээ нь)
+            tasks_completed = '12/15'  # Энэ утгыг tasks table-аас авах хэрэгтэй
 
-            data = {
-                'internship': None if not internship else {
-                    'id': internship.id,
-                    'company_name': internship.organization.name if internship.organization else None,
-                    'start_date': internship.start_date,
-                    'end_date': internship.end_date,
-                    'status': internship.get_status_display(),
-                    'duration': internship_duration
-                },
-                'preliminary_report': None if not preliminary_report else {
-                    'id': preliminary_report.id,
-                    'status': preliminary_report.status,
-                    'feedback': preliminary_report.feedback,
-                    'last_updated': preliminary_report.updated_at
-                },
-                'evaluations': {
-                    'teacher': None if not teacher_evaluation else {
-                        'id': teacher_evaluation.id,
-                        'grade': teacher_evaluation.grade,
-                        'comments': teacher_evaluation.comments,
-                        'date': teacher_evaluation.created_at
-                    },
-                    'mentor': None if not mentor_evaluation else {
-                        'id': mentor_evaluation.id,
-                        'grade': mentor_evaluation.grade,
-                        'comments': mentor_evaluation.comments,
-                        'date': mentor_evaluation.created_at
-                    }
-                },
-                'reports_submitted': reports_submitted,
-                'unread_notifications': notifications,
-            }
-            
-            print(f"\nResponse data: {data}")
-            return Response(data)
-            
+            return Response({
+                'reportsSubmitted': reports_submitted,
+                'daysRemaining': days_remaining,
+                'overallProgress': overall_progress,
+                'tasksCompleted': tasks_completed
+            })
+
         except Exception as e:
-            print(f"Error in StudentDashboardView: {str(e)}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            return Response(
-                {
-                    'error': str(e),
-                    'error_type': str(type(e).__name__),
-                    'traceback': traceback.format_exc()
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({
+                'error': str(e)
+            }, status=500)
 
 class StudentActivitiesView(APIView):
     permission_classes = [permissions.IsAuthenticated]
