@@ -10,7 +10,7 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^5.24.4",
     "axios": "^0.27.2",
-    "clsx": "^2.0.0",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^10.18.0",
     "lucide-react": "^0.241.0",
