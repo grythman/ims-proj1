@@ -76,9 +76,11 @@ const withErrorHandling = (apiCall) => async (...args) => {
 };
 
 // Export wrapped service
-export default {
+const wrappedAnalyticsService = {
     analytics: Object.keys(analyticsService).reduce((acc, key) => ({
         ...acc,
         [key]: withErrorHandling(analyticsService[key])
     }), {})
-}; 
+};
+
+export default wrappedAnalyticsService; 

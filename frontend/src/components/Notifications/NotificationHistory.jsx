@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Bell, Filter, Search, Trash2, CheckCircle } from 'lucide-react';
@@ -15,11 +15,7 @@ const NotificationHistory = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedNotifications, setSelectedNotifications] = useState([]);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [page, typeFilter]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await api.get('/api/notifications/history/', {
         params: {
@@ -36,11 +32,26 @@ const NotificationHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, typeFilter, searchTerm]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const handleSearch = () => {
     setPage(1);
     fetchNotifications();
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.post('/api/notifications/mark-all-read/');
+      toast.success('All notifications marked as read');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      toast.error('Failed to mark notifications as read');
+    }
   };
 
   const handleDelete = async (ids) => {
@@ -104,16 +115,26 @@ const NotificationHistory = () => {
           <h3 className="text-lg font-medium text-gray-900">
             Notification History
           </h3>
-          {selectedNotifications.length > 0 && (
+          <div className="flex space-x-2 mt-2 sm:mt-0">
+            {selectedNotifications.length > 0 && (
+              <Button
+                onClick={() => handleDelete(selectedNotifications)}
+                variant="danger"
+                className="inline-flex items-center"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedNotifications.length})
+              </Button>
+            )}
             <Button
-              onClick={() => handleDelete(selectedNotifications)}
-              variant="danger"
-              className="mt-2 sm:mt-0 inline-flex items-center"
+              onClick={markAllAsRead}
+              variant="secondary"
+              className="inline-flex items-center"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedNotifications.length})
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark All as Read
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
@@ -210,6 +231,11 @@ const NotificationHistory = () => {
                           <p className="text-sm text-gray-500">
                             {notification.message}
                           </p>
+                          {notification.is_read && (
+                            <div className="text-xs text-emerald-500 flex items-center mt-1">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Read
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="ml-4 flex-shrink-0">

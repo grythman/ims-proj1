@@ -13,24 +13,24 @@ const NotificationDetailPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const fetchNotification = async () => {
+      try {
+        const response = await api.get(`/api/notifications/${id}/`);
+        setNotification(response.data);
+      } catch (error) {
+        console.error('Error fetching notification:', error);
+        const errorMessage = error.response?.data?.error || 
+                            error.response?.data?.message ||
+                            'Failed to load notification';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchNotification();
   }, [id]);
-
-  const fetchNotification = async () => {
-    try {
-      const response = await api.get(`/api/notifications/${id}/`);
-      setNotification(response.data);
-    } catch (error) {
-      console.error('Error fetching notification:', error);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message ||
-                          'Failed to load notification';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleMarkAsRead = async () => {
     try {

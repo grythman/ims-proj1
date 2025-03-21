@@ -43,6 +43,9 @@ const App = () => {
     <AuthProvider>
       <Toaster position="top-right" />
       <Routes>
+        {/* Public Home Page */}
+        <Route path="/home" element={<HomePage />} />
+
         {/* Auth Routes */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
@@ -70,6 +73,7 @@ const App = () => {
             <Route path="reports/templates" element={<ReportTemplatesPage />} />
             <Route path="applications" element={<ApplicationsPage />} />
             <Route path="tasks" element={<Tasks />} />
+            <Route path="apply-internship" element={<ApplyInternship />} />
           </Route>
 
           {/* Mentor Routes */}
@@ -87,6 +91,9 @@ const App = () => {
             <Route path="reports/review" element={<ReviewReportsPage />} />
             <Route path="reports/templates" element={<ReportTemplatesPage />} />
             <Route path="evaluations" element={<EvaluationsPage />} />
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="applications" element={<MentorApplicationsPage />} />
           </Route>
 
           {/* Teacher Routes */}

@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
+    const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [recentActions, setRecentActions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +46,38 @@ const AdminDashboard = () => {
 
     return (
         <div className="space-y-6">
+            {/* Welcome Message */}
+            <div className="bg-white overflow-hidden shadow rounded-lg p-4">
+                <div className="flex items-center">
+                    <AcademicCapIcon className="h-8 w-8 text-blue-500 mr-3" />
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        Welcome, {user?.first_name || 'Admin'}!
+                    </h2>
+                </div>
+            </div>
+
+            {/* Loading and Error States */}
+            {loading && (
+                <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                </div>
+            )}
+            
+            {error && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <BellIcon className="h-5 w-5 text-red-400" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Stats Overview */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -60,6 +93,26 @@ const AdminDashboard = () => {
                                     </dt>
                                     <dd className="text-lg font-medium text-gray-900">
                                         {stats?.total_users || 0}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                    <div className="p-5">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <ClipboardDocumentListIcon className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt className="text-sm font-medium text-gray-500 truncate">
+                                        Total Reports
+                                    </dt>
+                                    <dd className="text-lg font-medium text-gray-900">
+                                        {stats?.total_reports || 0}
                                     </dd>
                                 </dl>
                             </div>

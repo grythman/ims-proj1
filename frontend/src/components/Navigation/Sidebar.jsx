@@ -31,6 +31,7 @@ const Sidebar = () => {
         { name: 'Students', icon: Users, path: '/mentor/students' },
         { name: 'Reports', icon: FileText, path: '/mentor/reports/review' },
         { name: 'Evaluations', icon: ClipboardList, path: '/mentor/evaluations' },
+        { name: 'Analytics', icon: BarChart, path: '/mentor/analytics' },
         { name: 'Messages', icon: MessageSquare, path: '/mentor/messages' }
       ],
       teacher: [

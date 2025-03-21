@@ -15,33 +15,33 @@ const ReviewReportsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchReports();
-  }, [statusFilter, typeFilter]);
+    const fetchReports = async () => {
+      try {
+        const response = await api.get('/api/reports/', {
+          params: {
+            search: searchTerm || undefined,
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            type: typeFilter !== 'all' ? typeFilter : undefined
+          }
+        });
+        setReports(response.data);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        const errorMessage = error.response?.data?.error || 
+                            error.response?.data?.message ||
+                            'Failed to load reports';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchReports = async () => {
-    try {
-      const response = await api.get('/api/reports/', {
-        params: {
-          search: searchTerm || undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-          type: typeFilter !== 'all' ? typeFilter : undefined
-        }
-      });
-      setReports(response.data);
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message ||
-                          'Failed to load reports';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchReports();
+  }, [searchTerm, statusFilter, typeFilter]);
 
   const handleSearch = () => {
-    fetchReports();
+    // Дахин хайх шаардлагагүй - dependencies автоматаар ажиллана
   };
 
   const handleReview = (updatedReport) => {

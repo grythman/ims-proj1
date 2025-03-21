@@ -5,7 +5,6 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  UserOutlined,
   BuildOutlined
 } from '@ant-design/icons';
 import api from '../../api/axios';
