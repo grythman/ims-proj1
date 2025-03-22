@@ -17,7 +17,7 @@ const StatisticsCard = ({
   changeValue,
   changeType = 'neutral',
   icon: Icon,
-  colorScheme = 'violet'
+  colorScheme = 'green'
 }) => {
   // Өөрчлөлтийн текстийн өнгийг тодорхойлох
   const getChangeColor = () => {
@@ -58,8 +58,8 @@ const StatisticsCard = ({
       red: 'text-red-600',
     };
     
-    const bgColor = colorMap[colorScheme] || colorMap.violet;
-    const iconColor = iconColorMap[colorScheme] || iconColorMap.violet;
+    const bgColor = colorMap[colorScheme] || colorMap.green;
+    const iconColor = iconColorMap[colorScheme] || iconColorMap.green;
     
     return (
       <div className={`rounded-full p-2 ${bgColor}`}>

@@ -16,7 +16,7 @@ const Button = ({
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-md transition-colors';
   
   const variantStyles = {
-    primary: 'bg-violet-600 text-white hover:bg-violet-700 focus:ring-2 focus:ring-offset-2 focus:ring-violet-500',
+    primary: 'bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
     secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500',
     outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500',
     text: 'bg-transparent text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500',
@@ -42,6 +42,24 @@ const Button = ({
     disabled && disabledStyles,
     className
   );
+
+  const renderIcon = (position) => {
+    if (!Icon) return null;
+    
+    // Хэрэв Icon нь React Element бол шууд буцаана
+    if (React.isValidElement(Icon)) {
+      return Icon;
+    }
+    
+    // Хэрэв Icon нь функц бол түүнийг компонент болгон дуудна
+    if (typeof Icon === 'function') {
+      const IconElement = Icon;
+      return <IconElement className={clsx('h-4 w-4', children && (position === 'left' ? 'mr-2' : 'ml-2'))} />;
+    }
+    
+    // Бусад тохиолдолд null буцаана
+    return null;
+  };
   
   return (
     <button
@@ -50,13 +68,9 @@ const Button = ({
       disabled={disabled}
       {...props}
     >
-      {Icon && iconPosition === 'left' && (
-        <Icon className={clsx('h-4 w-4', children && 'mr-2')} />
-      )}
+      {iconPosition === 'left' && renderIcon('left')}
       {children}
-      {Icon && iconPosition === 'right' && (
-        <Icon className={clsx('h-4 w-4', children && 'ml-2')} />
-      )}
+      {iconPosition === 'right' && renderIcon('right')}
     </button>
   );
 };

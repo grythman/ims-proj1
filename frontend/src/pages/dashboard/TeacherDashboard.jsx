@@ -221,10 +221,10 @@ const TeacherDashboard = () => {
             <Table
               loading={loading}
               columns={internshipColumns}
-              dataSource={recentInternships}
+              dataSource={Array.isArray(recentInternships) ? recentInternships : []}
               pagination={{
                 pageSize: 5,
-                total: recentInternships.length,
+                total: Array.isArray(recentInternships) ? recentInternships.length : 0,
                 showSizeChanger: false,
                 size: 'small'
               }}
@@ -246,10 +246,10 @@ const TeacherDashboard = () => {
             <Table
               loading={loading}
               columns={reportColumns}
-              dataSource={pendingReports}
+              dataSource={Array.isArray(pendingReports) ? pendingReports : []}
               pagination={{
                 pageSize: 5,
-                total: pendingReports.length,
+                total: Array.isArray(pendingReports) ? pendingReports.length : 0,
                 showSizeChanger: false,
                 size: 'small'
               }}

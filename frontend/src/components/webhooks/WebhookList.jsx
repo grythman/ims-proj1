@@ -127,7 +127,7 @@ const WebhookList = () => {
 
       <Table
         columns={columns}
-        dataSource={webhooks}
+        dataSource={Array.isArray(webhooks) ? webhooks : []}
         rowKey="id"
         loading={loading}
       />

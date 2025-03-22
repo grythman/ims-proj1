@@ -296,7 +296,7 @@ const MentorDashboard = () => {
           <Card title="Оюутнууд" className="students-card">
             <Table 
               columns={studentColumns} 
-              dataSource={students}
+              dataSource={Array.isArray(students) ? students : []}
               loading={loading}
               pagination={{ pageSize: 5 }}
               rowKey="id"
@@ -311,7 +311,7 @@ const MentorDashboard = () => {
           <Card title="Сүүлийн тайлангууд" className="reports-card">
             <Table 
               columns={reportColumns} 
-              dataSource={recentReports}
+              dataSource={Array.isArray(recentReports) ? recentReports : []}
               loading={loading}
               pagination={{ pageSize: 5 }}
               rowKey="id"
