@@ -53,6 +53,7 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
           path: '/student',
           exact: true
         },
+        { name: 'Дадлагын зар, мэдээлэл', icon: Briefcase, path: '/student/internship-listings' },
         { 
           name: 'Тайлангууд', 
           icon: FileText,
@@ -64,10 +65,20 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
             { name: 'Загварууд', icon: FileEdit, path: '/student/reports/templates' }
           ]
         },
-        { name: 'Даалгаврууд', icon: CheckSquare, path: '/student/tasks' },
+        { 
+          name: 'Үнэлгээнүүд', 
+          icon: CheckSquare,
+          key: 'evaluations',
+          isExpandable: true,
+          children: [
+            { name: 'Менторын үнэлгээ', icon: Users, path: '/student/evaluations/mentor' },
+            { name: 'Багшийн үнэлгээ', icon: GraduationCap, path: '/student/evaluations/teacher' }
+          ]
+        },
+        { name: 'Даалгаврууд', icon: ClipboardList, path: '/student/tasks' },
         { name: 'Хуваарь', icon: Calendar, path: '/student/schedule' },
         { name: 'Өргөдлүүд', icon: ClipboardList, path: '/student/applications' },
-        { name: 'Дадлага бүртгүүлэх', icon: Briefcase, path: '/student/apply-internship' }
+        { name: 'Дадлага бүртгүүлэх', icon: PlusCircle, path: '/student/apply-internship' }
       ],
       mentor: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/mentor' },
@@ -250,20 +261,6 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
       <nav className="flex flex-col flex-grow p-4">
         <div className="flex-grow space-y-1">
           {getNavItems().map(renderNavItem)}
-        </div>
-        
-        <div className="pt-4 mt-4 border-t border-gray-200">
-          <button
-            onClick={logout}
-            className={clsx(
-              "flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors",
-              collapsed && "justify-center"
-            )}
-            title={collapsed ? "Гарах" : ""}
-          >
-            <LogOut className={clsx(collapsed ? "mx-auto" : "mr-3", "h-5 w-5")} />
-            {!collapsed && <span>Гарах</span>}
-          </button>
         </div>
       </nav>
     </div>

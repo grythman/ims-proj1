@@ -231,7 +231,7 @@ const StudentDashboard = () => {
                       <div className="text-xs text-gray-500">2023-03-28 16:45</div>
                     </div>
                     <Tag color="warning">Хүлээгдэж буй</Tag>
-                  </div>
+        </div>
                   
                   <div className="flex items-center p-3 border border-gray-100 rounded-md hover:bg-gray-50">
                     <div className="mr-3 h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -240,13 +240,13 @@ const StudentDashboard = () => {
                     <div className="flex-1">
                       <div className="text-sm font-medium">Уулзалт тохирсон</div>
                       <div className="text-xs text-gray-500">2023-03-25 09:15</div>
-                    </div>
+        </div>
                     <Tag color="processing">Товлогдсон</Tag>
-                  </div>
+        </div>
                 </div>
               )}
-            </div>
-          </Card>
+      </div>
+    </Card>
         </div>
         
         {/* Баруун баган */}
@@ -269,12 +269,12 @@ const StudentDashboard = () => {
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Байгууллага:</div>
                     <div className="font-medium">Монгол Апп ХХК</div>
-                  </div>
+        </div>
 
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Ментор:</div>
                     <div className="font-medium">Батбаяр Дорж</div>
-                  </div>
+      </div>
 
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Эхэлсэн:</div>
@@ -340,8 +340,8 @@ const StudentDashboard = () => {
                   <p className="text-gray-500">Ойрын хугацаанд хийх зүйл алга</p>
                 </div>
               )}
-            </div>
-          </Card>
+                </div>
+              </Card>
           
           {/* Хурдан үйлдлүүд */}
           <Card title="Хурдан үйлдлүүд" className="border border-gray-100 shadow-sm">
@@ -376,7 +376,7 @@ const StudentDashboard = () => {
                 Дадлага бүртгүүлэх
               </CustomButton>
             </div>
-          </Card>
+              </Card>
         </div>
       </div>
     </div>

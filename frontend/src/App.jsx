@@ -39,6 +39,8 @@ import Tasks from './pages/tasks/Tasks'
 import Unauthorized from './pages/Unauthorized'
 import CreateReport from './pages/reports/CreateReport'
 import ViewReport from './pages/reports/ViewReport'
+import MentorEvaluation from './pages/student/evaluations/MentorEvaluation'
+import TeacherEvaluation from './pages/student/evaluations/TeacherEvaluation'
 
 // Dashboards
 import AdminDashboard from './pages/dashboard/AdminDashboard'
@@ -138,6 +140,8 @@ const App = () => {
                   <Route path="apply-internship" element={<ApplyInternship />} />
                   <Route path="applications" element={<ApplicationsPage />} />
                   <Route path="tasks" element={<Tasks />} />
+                  <Route path="evaluations/mentor" element={<MentorEvaluation />} />
+                  <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
                 </Route>
 
                 {/* Mentor Routes */}

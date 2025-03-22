@@ -10,6 +10,13 @@ import SubmitReport from '../pages/reports/SubmitReport';
 import ReviewReportsPage from '../pages/reports/ReviewReportsPage';
 import MainLayout from '../layouts/MainLayout';
 import WebhooksPage from '../pages/WebhooksPage';
+import ApplyInternship from '../pages/internships/ApplyInternship';
+import InternshipListings from '../pages/student/InternshipListings';
+import StudentTasks from '../pages/tasks/StudentTasks';
+import StudentSchedule from '../pages/student/Schedule';
+import StudentApplications from '../pages/applications/StudentApplications';
+import MentorEvaluation from '../pages/student/evaluations/MentorEvaluation';
+import TeacherEvaluation from '../pages/student/evaluations/TeacherEvaluation';
 
 const AppRoutes = () => {
   return (
@@ -22,6 +29,16 @@ const AppRoutes = () => {
           <Route path="reports" element={<Reports />} />
           <Route path="reports/:id" element={<ReportDetails />} />
           <Route path="reports/submit" element={<SubmitReport />} />
+          <Route path="reports/review" element={<ReviewReportsPage />} />
+          <Route path="reports/templates" element={<div>Тайлангийн загварууд</div>} />
+          <Route path="internship-listings" element={<InternshipListings />} />
+          <Route path="internship-info" element={<div>Дадлагын дэлгэрэнгүй мэдээлэл</div>} />
+          <Route path="tasks" element={<StudentTasks />} />
+          <Route path="schedule" element={<StudentSchedule />} />
+          <Route path="applications" element={<StudentApplications />} />
+          <Route path="apply-internship" element={<ApplyInternship />} />
+          <Route path="evaluations/mentor" element={<MentorEvaluation />} />
+          <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
         </Route>
 
         {/* Teacher Routes */}

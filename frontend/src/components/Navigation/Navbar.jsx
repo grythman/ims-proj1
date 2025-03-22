@@ -34,7 +34,6 @@ const Navbar = () => {
   };
 
   const navigationLinks = [
-    { name: 'Хуваарь', href: '/schedule' },
   ];
 
   return (
@@ -97,11 +96,14 @@ const Navbar = () => {
                   </div>
                   <div className="ml-2 hidden md:block">
                     <div className="text-sm font-medium text-gray-800">
-                      Б. Төгөлдөр
+                      {user?.first_name ? `${user.first_name.charAt(0)}. ${user.last_name}` : user?.username || 'Хэрэглэгч'}
                     </div>
                     <div className="text-xs text-gray-500 flex items-center">
                       <span className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></span>
-                      Баатарсүрэн
+                      {user?.user_type === 'student' ? 'Оюутан' :
+                       user?.user_type === 'mentor' ? 'Ментор' :
+                       user?.user_type === 'teacher' ? 'Багш' :
+                       user?.user_type === 'admin' ? 'Админ' : 'Хэрэглэгч'}
                     </div>
                   </div>
                   <ChevronDown className="ml-1 h-4 w-4 text-gray-500" />
@@ -115,46 +117,12 @@ const Navbar = () => {
                   role="menu"
                 >
                   <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">Б. Төгөлдөр</p>
-                    <p className="text-xs text-gray-600">19B1NUM0295@stud.num.edu.mn</p>
-                    <div className="flex items-center mt-2">
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">
-                        Оюутан
-                      </span>
-                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">
-                        Бакалавр
-                      </span>
-                    </div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {user?.first_name ? `${user.first_name.charAt(0)}. ${user.last_name}` : user?.username || 'Хэрэглэгч'}
+                    </p>
                   </div>
                   
                   <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors"
-                      role="menuitem"
-                    >
-                      <User className="mr-3 h-4 w-4 text-green-500" />
-                      Хувийн мэдээлэл
-                    </Link>
-                    <Link
-                      to="/dashboard"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors"
-                      role="menuitem"
-                    >
-                      <Home className="mr-3 h-4 w-4 text-green-500" />
-                      Нүүр хэсэг
-                    </Link>
-                    <Link
-                      to="/applications"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors"
-                      role="menuitem"
-                    >
-                      <ClipboardList className="mr-3 h-4 w-4 text-green-500" />
-                      Миний өргөдлүүд
-                    </Link>
-                  </div>
-                  
-                  <div className="py-1 border-t border-gray-100">
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
