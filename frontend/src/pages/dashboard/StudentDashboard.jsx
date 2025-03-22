@@ -10,6 +10,9 @@ import {
 import api from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
 import './StudentDashboard.css';
+import { FileText, Calendar, CheckCircle, Clock, FileEdit } from 'lucide-react';
+import StatisticsCard from '../../components/Analytics/StatisticsCard';
+import { Button as CustomButton } from '../../components/UI/Button';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -178,41 +181,29 @@ const StudentDashboard = () => {
     </Card>
   );
 
-  const StatCard = ({ icon: Icon, title, value, color }) => (
-    <Card hoverable className="stat-card">
-      <div className="stat-content">
-        <div className={`icon-wrapper ${color}`}>
-          <Icon />
-        </div>
-        <div className="stat-text">
-          <Text className="stat-value">{value}</Text>
-          <Text className="stat-title">{title}</Text>
-        </div>
-      </div>
-    </Card>
-  );
-
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div>
-          <Title level={2}>Тавтай морил! 👋</Title>
-          <Text type="secondary">Өнөөдрийн дадлагын явц.</Text>
-        </div>
-        <div className="header-actions">
-          <Button 
-            type="primary"
-            icon={<FileTextOutlined />}
+    <div className="max-w-6xl mx-auto px-4 py-6 bg-white">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold mb-1">Тавтай морил! 👋</h1>
+        <p className="text-gray-500">Өнөөдрийн дадлагын явц.</p>
+        
+        <div className="mt-5 flex gap-3">
+          <CustomButton 
+            variant="primary"
+            size="sm"
             onClick={() => navigate('/dashboard/reports/submit')}
+            className="bg-violet-600 hover:bg-violet-700 text-white"
           >
             Шинэ тайлан
-          </Button>
-          <Button
-            icon={<BuildOutlined />}
+          </CustomButton>
+          <CustomButton
+            variant="outline"
+            size="sm"
             onClick={() => setShowRegisterForm(true)}
+            className="text-gray-700 border-gray-300"
           >
             Дадлага бүртгүүлэх
-          </Button>
+          </CustomButton>
         </div>
       </div>
 
@@ -220,67 +211,82 @@ const StudentDashboard = () => {
         <RegisterInternshipForm />
       ) : (
         <>
-          <Row gutter={[16, 16]} className="stats-row">
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                icon={FileTextOutlined}
-                title="Нийт тайлан"
-                value={stats.reportsSubmitted}
-                color="blue"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                icon={CalendarOutlined}
-                title="Үлдсэн хоног"
-                value={stats.daysRemaining}
-                color="green"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                icon={CheckCircleOutlined}
-                title="Явц"
-                value={`${stats.overallProgress}%`}
-                color="purple"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                icon={ClockCircleOutlined}
-                title="Даалгавар"
-                value={stats.tasksCompleted}
-                color="orange"
-              />
-            </Col>
-          </Row>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatisticsCard
+              icon={FileText}
+              title="Нийт тайлан"
+              value={stats.reportsSubmitted}
+              colorScheme="violet"
+            />
+            <StatisticsCard
+              icon={Calendar}
+              title="Үлдсэн хоног"
+              value={stats.daysRemaining}
+              colorScheme="green"
+            />
+            <StatisticsCard
+              icon={CheckCircle}
+              title="Явц"
+              value={`${stats.overallProgress}%`}
+              colorScheme="purple"
+            />
+            <StatisticsCard
+              icon={Clock}
+              title="Даалгавар"
+              value={stats.tasksCompleted}
+              colorScheme="amber"
+            />
+          </div>
 
-          <Row gutter={[16, 16]} className="content-row">
-            <Col xs={24} lg={16}>
-              <Card title="Дадлагын явц" className="progress-card">
-                <div className="progress-bar-container">
-                  <div className="progress-info">
-                    <Text>Нийт явц</Text>
-                    <Text strong>{stats.overallProgress}%</Text>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="col-span-1 md:col-span-2">
+              <Card title="Дадлагын явц" className="border border-gray-100 shadow-sm">
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">Нийт явц</span>
+                    <span className="text-sm font-medium">{stats.overallProgress}%</span>
                   </div>
-                  <div className="progress-bar">
+                  <div className="h-2 w-full bg-gray-100 rounded-full mb-4">
                     <div 
-                      className="progress-fill"
+                      className="h-full bg-violet-500 rounded-full" 
                       style={{ width: `${stats.overallProgress}%` }}
-                    />
+                    ></div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 mt-4">
+                    <div className="pb-2">
+                      <span>Нийт явц</span>
+                      <div className="mt-1 h-2 w-full bg-gray-100 rounded-full">
+                        <div className="h-full bg-violet-500 rounded-full" style={{ width: '0%' }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="progress-details">
-                  {/* Add more progress details here */}
+              </Card>
+            </div>
+            
+            <div className="col-span-1">
+              <Card 
+                title="Ойрын хугацаанууд" 
+                className="border border-gray-100 shadow-sm"
+                extra={<a href="#" className="text-violet-600 text-xs">Бүгдийг үзэх</a>}
+              >
+                <div className="p-2">
+                  <div className="p-3 border border-gray-100 rounded-md mb-2 hover:bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-sm font-medium">7 хоногийн тайлан</div>
+                        <div className="text-xs text-gray-500 mt-1">Дуусах хугацаа: 2023-03-25</div>
+                      </div>
+                      <div className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full">
+                        Удахгүй
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </Card>
-            </Col>
-            <Col xs={24} lg={8}>
-              <Card title="Ойрын хугацаанууд" className="deadlines-card">
-                {/* Add deadlines content here */}
-              </Card>
-            </Col>
-          </Row>
+            </div>
+          </div>
         </>
       )}
     </div>

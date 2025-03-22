@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register } from '../../services/api';
 import Input from '../UI/Input';
-import Button from '../UI/Button';
+import { Button } from '../UI/Button';
 import { toast } from 'react-toastify';
 
 const Register = () => {

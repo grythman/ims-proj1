@@ -14,6 +14,73 @@ import './MentorDashboard.css';
 
 const { Title, Text } = Typography;
 
+// Mock data for when API fails
+const mockStats = {
+  totalStudents: 15,
+  activeInternships: 12,
+  completedInternships: 8,
+  pendingReports: 4
+};
+
+const mockStudents = [
+  {
+    id: 1,
+    name: 'Батболд Дорж',
+    email: 'batbold@example.mn',
+    internshipTitle: 'Мобайл Апп Хөгжүүлэлт',
+    progress: 75,
+    status: 'active'
+  },
+  {
+    id: 2,
+    name: 'Сарангэрэл Бат',
+    email: 'sarangerel@example.mn',
+    internshipTitle: 'Веб Хөгжүүлэлт',
+    progress: 45,
+    status: 'active'
+  },
+  {
+    id: 3,
+    name: 'Алтангэрэл Төмөр',
+    email: 'altaa@example.mn',
+    internshipTitle: 'Мэдээллийн Систем',
+    progress: 90,
+    status: 'active'
+  },
+  {
+    id: 4,
+    name: 'Ганболд Баатар',
+    email: 'ganbold@example.mn',
+    internshipTitle: 'Дата Аналитик',
+    progress: 100,
+    status: 'completed'
+  }
+];
+
+const mockReports = [
+  {
+    id: 1,
+    studentName: 'Батболд Дорж',
+    type: 'weekly',
+    submittedAt: '2023-04-10',
+    status: 'pending'
+  },
+  {
+    id: 2,
+    studentName: 'Сарангэрэл Бат',
+    type: 'monthly',
+    submittedAt: '2023-04-05',
+    status: 'approved'
+  },
+  {
+    id: 3,
+    studentName: 'Алтангэрэл Төмөр',
+    type: 'weekly',
+    submittedAt: '2023-04-08',
+    status: 'rejected'
+  }
+];
+
 const MentorDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -39,8 +106,13 @@ const MentorDashboard = () => {
       setStudents(studentsResponse.data);
       setRecentReports(reportsResponse.data);
     } catch (error) {
-      message.error('Өгөгдөл ачаалахад алдаа гарлаа');
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching mentor dashboard data:', error);
+      message.warning('Өгөгдөл ачаалахад алдаа гарлаа. Түр зуурын өгөгдөл харуулж байна.');
+      
+      // Use mock data when API fails
+      setStats(mockStats);
+      setStudents(mockStudents);
+      setRecentReports(mockReports);
     } finally {
       setLoading(false);
     }
@@ -90,7 +162,10 @@ const MentorDashboard = () => {
       key: 'progress',
       render: (progress) => (
         <Tooltip title={`${progress}%`}>
-          <Progress percent={progress} size="small" />
+          <Progress percent={progress} size="small" strokeColor={{
+            '0%': '#108ee9',
+            '100%': '#87d068',
+          }} />
         </Tooltip>
       ),
     },
@@ -224,6 +299,8 @@ const MentorDashboard = () => {
               dataSource={students}
               loading={loading}
               pagination={{ pageSize: 5 }}
+              rowKey="id"
+              locale={{ emptyText: 'Өгөгдөл олдсонгүй' }}
             />
           </Card>
         </Col>
@@ -237,6 +314,8 @@ const MentorDashboard = () => {
               dataSource={recentReports}
               loading={loading}
               pagination={{ pageSize: 5 }}
+              rowKey="id"
+              locale={{ emptyText: 'Өгөгдөл олдсонгүй' }}
             />
           </Card>
         </Col>

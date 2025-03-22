@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { login } from '../../services/api';
 import { setToken } from '../../utils/auth';
 import Input from '../UI/Input';
-import Button from '../UI/Button';
-import { toast } from 'react-toastify';
+import { Button } from '../UI/Button';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });

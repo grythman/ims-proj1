@@ -1,11 +1,13 @@
 import React from 'react';
 import clsx from 'clsx';
 
-const Card = ({ children, className, ...props }) => {
+const Card = ({ children, className, hover = false, ...props }) => {
   return (
     <div 
       className={clsx(
-        'bg-white overflow-hidden shadow-sm rounded-lg hover:shadow-md transition-shadow duration-200',
+        'bg-white rounded-lg shadow-sm border border-gray-50',
+        hover && 'hover:shadow-sm hover:border-gray-100',
+        'transition-all duration-200 ease-in-out',
         className
       )} 
       {...props}
@@ -15,10 +17,14 @@ const Card = ({ children, className, ...props }) => {
   );
 };
 
-const CardHeader = ({ children, className, ...props }) => {
+const CardHeader = ({ children, className, bordered = false, ...props }) => {
   return (
     <div 
-      className={clsx('px-4 py-5 sm:p-6', className)} 
+      className={clsx(
+        'px-4 py-3',
+        bordered && 'border-b border-gray-50',
+        className
+      )} 
       {...props}
     >
       {children}
@@ -29,7 +35,22 @@ const CardHeader = ({ children, className, ...props }) => {
 const CardContent = ({ children, className, ...props }) => {
   return (
     <div 
-      className={clsx('px-4 pb-5 sm:px-6', className)} 
+      className={clsx('px-4 py-3', className)} 
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
+const CardFooter = ({ children, className, bordered = false, ...props }) => {
+  return (
+    <div 
+      className={clsx(
+        'px-4 py-3',
+        bordered && 'border-t border-gray-50',
+        className
+      )} 
       {...props}
     >
       {children}
@@ -40,7 +61,7 @@ const CardContent = ({ children, className, ...props }) => {
 const CardTitle = ({ children, className, ...props }) => {
   return (
     <h3 
-      className={clsx('text-lg font-medium text-gray-900', className)} 
+      className={clsx('text-base font-medium text-gray-800', className)} 
       {...props}
     >
       {children}
@@ -60,4 +81,4 @@ const CardDescription = ({ children, className, ...props }) => {
 };
 
 // Single export statement
-export { Card, CardHeader, CardContent, CardTitle, CardDescription };
+export { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription };

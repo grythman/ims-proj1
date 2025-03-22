@@ -16,7 +16,8 @@ const StatisticsCard = ({
   description,
   changeValue,
   changeType = 'neutral',
-  icon: Icon
+  icon: Icon,
+  colorScheme = 'violet'
 }) => {
   // Өөрчлөлтийн текстийн өнгийг тодорхойлох
   const getChangeColor = () => {
@@ -37,22 +38,53 @@ const StatisticsCard = ({
            changeType === 'negative' ? '-' : '';
   };
 
+  // Карт дотор IconBackground component
+  const IconBackground = () => {
+    const colorMap = {
+      violet: 'bg-violet-100',
+      green: 'bg-green-100',
+      blue: 'bg-blue-100',
+      amber: 'bg-amber-100',
+      purple: 'bg-purple-100',
+      red: 'bg-red-100',
+    };
+    
+    const iconColorMap = {
+      violet: 'text-violet-600',
+      green: 'text-green-600',
+      blue: 'text-blue-600',
+      amber: 'text-amber-600',
+      purple: 'text-purple-600',
+      red: 'text-red-600',
+    };
+    
+    const bgColor = colorMap[colorScheme] || colorMap.violet;
+    const iconColor = iconColorMap[colorScheme] || iconColorMap.violet;
+    
+    return (
+      <div className={`rounded-full p-2 ${bgColor}`}>
+        {Icon && <Icon className={`h-5 w-5 ${iconColor}`} />}
+      </div>
+    );
+  };
+
   return (
-    <Card>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-          {Icon && <Icon className="h-5 w-5 text-gray-400" />}
-        </div>
-        <div className="flex flex-col gap-1">
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
+    <Card className="p-4 overflow-hidden relative">
+      <div className="flex justify-between items-center">
+        {/* Icon */}
+        {Icon && <IconBackground />}
+
+        {/* Title and value information */}
+        <div className="flex flex-col text-right w-full ml-3">
+          <h3 className="text-xs font-medium text-gray-500 mb-1">{title}</h3>
+          <p className="text-2xl font-semibold text-gray-800">{value}</p>
           
           {description && (
             <p className="text-sm text-gray-500">{description}</p>
           )}
           
           {changeValue && (
-            <p className={`text-sm ${getChangeColor()} flex items-center mt-1`}>
+            <p className={`text-sm ${getChangeColor()} flex items-center justify-end mt-1`}>
               {getChangePrefix()}{changeValue}
             </p>
           )}

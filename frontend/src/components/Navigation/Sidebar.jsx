@@ -10,8 +10,10 @@ import {
   Calendar,
   CheckSquare,
   BarChart,
-  MessageSquare
+  MessageSquare,
+  GraduationCap
 } from 'lucide-react';
+import clsx from 'clsx';
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -61,34 +63,66 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-white shadow-sm h-[calc(100vh-4rem)]">
-      <nav className="mt-5 px-2">
+    <div className="w-64 bg-white h-[calc(100vh-4rem)] flex flex-col">
+      {/* Logo */}
+      <div className="px-5 py-5 flex items-center">
+        <div className="h-8 w-8 rounded-md bg-violet-600 flex items-center justify-center">
+          <GraduationCap className="h-5 w-5 text-white" />
+        </div>
+        <div className="ml-3">
+          <h2 className="font-semibold text-lg text-gray-900">
+            IMS <span className="text-violet-600">Систем</span>
+          </h2>
+        </div>
+      </div>
+      
+      {/* Navigation */}
+      <nav className="mt-5 px-3 flex-1 overflow-y-auto">
         <div className="space-y-1">
           {getNavItems().map((item) => {
             const Icon = item.icon;
+            const active = isActive(item.path);
+            
             return (
               <Link
                 key={item.name}
                 to={item.path}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                  isActive(item.path)
-                    ? 'bg-emerald-100 text-emerald-900'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                className={clsx(
+                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150",
+                  active
+                    ? "bg-violet-100 text-violet-700"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                )}
               >
                 <Icon
-                  className={`mr-3 h-5 w-5 ${
-                    isActive(item.path)
-                      ? 'text-emerald-500'
-                      : 'text-gray-400 group-hover:text-gray-500'
-                  }`}
+                  className={clsx(
+                    "mr-3 h-5 w-5 flex-shrink-0",
+                    active
+                      ? "text-violet-600"
+                      : "text-gray-500 group-hover:text-gray-600"
+                  )}
                 />
-                {item.name}
+                <span>{item.name}</span>
+                {active && (
+                  <div className="h-1.5 w-1.5 rounded-full bg-violet-600 ml-auto"></div>
+                )}
               </Link>
             );
           })}
         </div>
       </nav>
+      
+      {/* User info */}
+      <div className="p-3 mt-auto">
+        <div className="px-3 py-2 bg-gray-50 rounded-md">
+          <div className="text-xs font-medium text-gray-500 uppercase">
+            {user?.user_type || 'user'}
+          </div>
+          <div className="text-sm font-medium text-gray-700">
+            {user?.first_name} {user?.last_name}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
