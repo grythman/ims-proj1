@@ -29,17 +29,21 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # API v1 URLs
     path('api/v1/', include((v1_router.urls, 'v1'))),
-    path('api/v1/auth/', include('rest_framework.urls')),
+    path('api/v1/auth/', include('rest_framework.urls', namespace='rest_framework_v1')),
     path('api/v1/token/', TokenObtainPairView.as_view(), name='v1_token_obtain_pair'),
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='v1_token_refresh'),
     path('api/v1/token/verify/', TokenVerifyView.as_view(), name='v1_token_verify'),
+    path('api/v1/users/', include('apps.users.urls', namespace='users_v1')),
+    path('api/v1/internships/', include('apps.internships.urls', namespace='internships_v1')),
     
     # API v2 URLs
     path('api/v2/', include((v2_router.urls, 'v2'))),
-    path('api/v2/auth/', include('rest_framework.urls')),
+    path('api/v2/auth/', include('rest_framework.urls', namespace='rest_framework_v2')),
     path('api/v2/token/', TokenObtainPairView.as_view(), name='v2_token_obtain_pair'),
     path('api/v2/token/refresh/', TokenRefreshView.as_view(), name='v2_token_refresh'),
     path('api/v2/token/verify/', TokenVerifyView.as_view(), name='v2_token_verify'),
+    path('api/v2/users/', include('apps.users.urls', namespace='users_v2')),
+    path('api/v2/internships/', include('apps.internships.urls', namespace='internships_v2')),
     
     # API Schema documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

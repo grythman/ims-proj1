@@ -34,7 +34,6 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({
     reports: true,
-    teacher_reports: true
   });
 
   const toggleMenu = (menuKey) => {
@@ -56,17 +55,8 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
         },
         { name: 'Дадлагын зар, мэдээлэл', icon: Briefcase, path: '/student/internship-listings' },
         { 
-          name: 'Тайлангууд', 
-          icon: FileText,
-          key: 'reports',
-          isExpandable: true,
-          children: [
-            { name: 'Шинэ тайлан', icon: PlusCircle, path: '/student/reports/submit' },
-            { name: 'Миний тайлангууд', icon: ListChecks, path: '/student/reports/review' },
-            { name: 'Загварууд', icon: FileEdit, path: '/student/reports/templates' },
-            { name: 'Статистик', icon: BarChart, path: '/student/reports/analytics' }
-          ]
-        },
+          name: 'Тайлан', 
+          icon: FileText, path: '/student/reports/templates' },
         { 
           name: 'Үнэлгээнүүд', 
           icon: CheckSquare,
@@ -93,33 +83,14 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
       teacher: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/teacher' },
         { name: 'Оюутнууд', icon: Users, path: '/teacher/students' },
-        { 
-          name: 'Тайлангууд', 
-          icon: FileText,
-          key: 'teacher_reports',
-          isExpandable: true,
-          children: [
-            { name: 'Бүх тайлангууд', icon: ListChecks, path: '/teacher/reports' },
-            { name: 'Шалгах тайлангууд', icon: FileEdit, path: '/teacher/reports/review' },
-            { name: 'Статистик', icon: BarChart, path: '/teacher/reports/analytics' }
-          ]
-        },
+        { name: 'Тайлангууд', icon: FileText, path: '/teacher/reports/review' },
         { name: 'Үнэлгээнүүд', icon: ClipboardList, path: '/teacher/evaluations' },
         { name: 'Статистик', icon: BarChart, path: '/teacher/analytics' }
       ],
       admin: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/admin' },
         { name: 'Хэрэглэгчид', icon: Users, path: '/admin/users' },
-        { 
-          name: 'Тайлангууд', 
-          icon: FileText,
-          key: 'admin_reports',
-          isExpandable: true,
-          children: [
-            { name: 'Бүх тайлангууд', icon: ListChecks, path: '/admin/reports' },
-            { name: 'Статистик', icon: BarChart, path: '/admin/reports/analytics' }
-          ]
-        },
+        { name: 'Тайлангууд', icon: FileText, path: '/admin/reports/review' },
         { name: 'Статистик', icon: BarChart, path: '/admin/analytics' },
         { name: 'Тохиргоо', icon: Settings, path: '/admin/settings' }
       ]

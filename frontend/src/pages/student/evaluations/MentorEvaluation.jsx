@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../components/UI/Card';
-import { Badge, Rate, Avatar, Collapse, Tooltip, Table, Skeleton } from 'antd';
-import { User, Calendar, ClipboardList, Book, Star } from 'lucide-react';
+import { Badge, Rate, Avatar, Collapse, Tooltip, Table, Skeleton, Progress, Tag } from 'antd';
+import { User, Calendar, ClipboardList, Book } from 'lucide-react';
 import ErrorState from '../../../components/UI/ErrorState';
 import api from '../../../services/api';
 
@@ -17,7 +17,7 @@ const MentorEvaluation = () => {
       try {
         setLoading(true);
         // API-аас үнэлгээний мэдээлэл авах
-        const response = await api.get('/api/student/evaluations/mentor');
+        const response = await api.get('/api/v1/internships/student/evaluations/mentor/');
         setEvaluationData(response.data);
       } catch (error) {
         console.error('Үнэлгээний мэдээлэл авахад алдаа гарлаа:', error);
@@ -48,7 +48,7 @@ const MentorEvaluation = () => {
               id: 1,
               date: '2023-04-15',
               overallScore: 4.2,
-              comment: 'Бат сүүлийн сард сайн ажиллаж байна. Техникийн ур чадвар сайжирч байгаа боловч харилцааны ур чадварыг хөгжүүлэх хэрэгтэй.',
+              comment: 'Сүүлийн сард сайн ажиллаж байна. Техникийн ур чадвар сайжирч байгаа боловч харилцааны ур чадварыг хөгжүүлэх хэрэгтэй.',
               scores: {
                 attendance: 4.5,
                 technical: 4.0,
@@ -61,34 +61,72 @@ const MentorEvaluation = () => {
               id: 2,
               date: '2023-03-15',
               overallScore: 3.8,
-              comment: 'Тасралтгүй сайжирч байна. Багийн гишүүдтэй илүү идэвхтэй харилцаж, хурлуудад оролцохыг зөвлөж байна.',
+              comment: 'Техникийн ур чадвар дунд зэрэг. Идэвх сонирхолтой ажиллаж байгаа нь сайшаалтай. Код бичих дадалаа сайжруулах хэрэгтэй.',
               scores: {
-                attendance: 4.0,
-                technical: 3.8,
-                teamwork: 3.5,
-                communication: 3.2,
-                problemSolving: 3.9,
+                attendance: 4.2,
+                technical: 3.7,
+                teamwork: 3.8,
+                communication: 3.5,
+                problemSolving: 3.8,
               }
             },
             {
               id: 3,
               date: '2023-02-15',
               overallScore: 3.5,
-              comment: 'Эхний сарын гүйцэтгэл дунд зэрэг байна. Техникийн мэдлэг, ур чадвар сайн боловч цаг баримтлах, харилцааны ур чадварыг сайжруулах хэрэгтэй.',
+              comment: 'Дадлага эхэлсэн. Суурь мэдлэгтэй боловч практик туршлага дутмаг байна. Идэвхтэй суралцаж байгаа нь сайшаалтай.',
               scores: {
-                attendance: 3.5,
-                technical: 3.8,
-                teamwork: 3.2,
-                communication: 3.0,
-                problemSolving: 3.7,
+                attendance: 4.0,
+                technical: 3.2,
+                teamwork: 3.5,
+                communication: 3.3,
+                problemSolving: 3.5,
               }
             }
           ],
           assignedTasks: [
-            { id: 1, title: 'Нүүр хуудасны дизайн хөгжүүлэлт', status: 'completed', score: 5.0 },
-            { id: 2, title: 'Бүртгэлийн хуудасны алдаа засварлах', status: 'completed', score: 4.0 },
-            { id: 3, title: 'Мэдээллийн самбарын диаграм нэмэх', status: 'in-progress', score: null },
-            { id: 4, title: 'Хэрэглэгчийн интерфэйсийн сайжруулалтууд', status: 'upcoming', score: null },
+            {
+              id: 1,
+              title: 'Хэрэглэгчийн интерфэйс хөгжүүлэх',
+              status: 'completed',
+              deadline: '2023-03-10',
+              score: 9.5,
+              maxScore: 10
+            },
+            {
+              id: 2,
+              title: 'API холболт хийх',
+              status: 'completed',
+              deadline: '2023-03-25',
+              score: 8.7,
+              maxScore: 10
+            },
+            {
+              id: 3,
+              title: 'Тестүүд бичих',
+              status: 'in-progress',
+              deadline: '2023-04-20',
+              score: null,
+              maxScore: 10
+            }
+          ],
+          skillRatings: [
+            {
+              name: 'Техникийн ур чадвар',
+              rating: 4.5
+            },
+            {
+              name: 'Багаар ажиллах',
+              rating: 4.0
+            },
+            {
+              name: 'Харилцаа',
+              rating: 3.8
+            },
+            {
+              name: 'Асуудал шийдвэрлэх',
+              rating: 4.2
+            }
           ]
         });
       } finally {
@@ -110,10 +148,11 @@ const MentorEvaluation = () => {
   }
 
   const getScoreColor = (score) => {
-    if (score >= 4.5) return '#52c41a'; // Маш сайн
-    if (score >= 4.0) return '#1890ff'; // Сайн
-    if (score >= 3.0) return '#faad14'; // Дунд
-    return '#f5222d'; // Хангалтгүй
+    if (score >= 9) return '#52c41a';  // Маш сайн - ногоон
+    if (score >= 7) return '#1890ff';  // Сайн - цэнхэр
+    if (score >= 5) return '#faad14';  // Дундаж - шар
+    if (score >= 3) return '#fa8c16';  // Сул - улбар шар
+    return '#f5222d';                  // Муу - улаан
   };
 
   const getTaskStatusTag = (status) => {
@@ -129,17 +168,39 @@ const MentorEvaluation = () => {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'completed':
+      case 'Гүйцэтгэсэн':
+        return <Tag color="green">Гүйцэтгэсэн</Tag>;
+      case 'in_progress':
+      case 'Хийгдэж буй':
+        return <Tag color="blue">Хийгдэж буй</Tag>;
+      case 'pending':
+      case 'Хүлээгдэж буй':
+        return <Tag color="orange">Хүлээгдэж буй</Tag>;
+      default:
+        return <Tag color="default">{status}</Tag>;
+    }
+  };
+
   const tasksColumns = [
     {
       title: 'Даалгаврын нэр',
       dataIndex: 'title',
       key: 'title',
+      render: (text) => <span className="font-medium">{text}</span>,
     },
     {
       title: 'Төлөв',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => getTaskStatusTag(status),
+      render: (status) => getStatusIcon(status)
+    },
+    {
+      title: 'Эцсийн хугацаа',
+      dataIndex: 'dueDate',
+      key: 'dueDate',
     },
     {
       title: 'Үнэлгээ',
@@ -147,11 +208,30 @@ const MentorEvaluation = () => {
       key: 'score',
       render: (score) => score ? (
         <div style={{ color: getScoreColor(score) }}>
-          {score.toFixed(1)} <Star className="inline-block h-4 w-4" />
+          {score.toFixed(1)}
         </div>
       ) : '—',
     },
   ];
+
+  const getCategoryName = (key) => {
+    const categoryNames = {
+      attendance: 'Ирц',
+      technical: 'Техникийн ур чадвар',
+      teamwork: 'Багаар ажиллах',
+      communication: 'Харилцаа',
+      problemSolving: 'Асуудал шийдвэрлэх'
+    };
+    return categoryNames[key] || key;
+  };
+
+  const getProgressColor = (rating) => {
+    if (rating >= 4.5) return '#52c41a'; // Маш сайн - ногоон
+    if (rating >= 4.0) return '#1890ff'; // Сайн - цэнхэр
+    if (rating >= 3.0) return '#faad14'; // Дундаж - шар
+    if (rating >= 2.0) return '#fa8c16'; // Сул - улбар шар
+    return '#f5222d';                    // Муу - улаан
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -166,123 +246,145 @@ const MentorEvaluation = () => {
           <Skeleton active paragraph={{ rows: 4 }} />
         </div>
       ) : evaluationData ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Зүүн талын контент (2 багана) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Ерөнхий үнэлгээ */}
-            <Card className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-xl font-semibold">Сүүлийн үнэлгээ</h2>
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className="text-sm text-gray-500">{evaluationData.latestEvaluation.date}</span>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex items-center mb-2">
-                  <span className="text-lg mr-2">Нийт үнэлгээ:</span>
-                  <span 
-                    className="text-2xl font-bold" 
-                    style={{ color: getScoreColor(evaluationData.latestEvaluation.overallScore) }}
-                  >
-                    {evaluationData.latestEvaluation.overallScore.toFixed(1)}
-                  </span>
-                  <span className="ml-2">
-                    <Rate 
-                      disabled 
-                      allowHalf 
-                      value={evaluationData.latestEvaluation.overallScore} 
-                      className="text-sm"
-                    />
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                  <h3 className="text-md font-medium mb-2">Менторын тайлбар:</h3>
-                  <p className="text-gray-600">{evaluationData.latestEvaluation.comment}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(evaluationData.latestEvaluation.scores).map(([key, score]) => (
-                  <div key={key} className="bg-green-50 p-3 rounded-lg">
-                    <p className="text-gray-500 text-sm capitalize mb-1">
-                      {key === 'attendance' && 'Ирц'}
-                      {key === 'technical' && 'Техникийн ур чадвар'}
-                      {key === 'teamwork' && 'Багаар ажиллах'}
-                      {key === 'communication' && 'Харилцаа'}
-                      {key === 'problemSolving' && 'Асуудал шийдвэрлэх'}
-                    </p>
-                    <div className="flex items-center">
-                      <span 
-                        className="text-xl font-bold mr-2" 
-                        style={{ color: getScoreColor(score) }}
-                      >
-                        {score.toFixed(1)}
+        <div className="flex flex-col-reverse md:flex-row md:space-x-4">
+          <div className="md:w-2/3">
+            <Card className="mb-6 p-6">
+              <h2 className="text-xl font-semibold mb-4">Сүүлийн үнэлгээ</h2>
+              {evaluationData.latestEvaluation ? (
+                <div className="space-y-4">
+                  <div className="flex items-center mb-2">
+                    <div className="mr-4">
+                      <span className="text-5xl font-bold" style={{ color: getScoreColor(evaluationData.latestEvaluation.overallScore) }}>
+                        {evaluationData.latestEvaluation.overallScore}/10
                       </span>
-                      <Rate disabled allowHalf value={score} className="text-xs" />
+                    </div>
+                    <div>
+                      <p className="text-gray-600 mb-1">Үнэлгээний огноо: {evaluationData.latestEvaluation.date}</p>
+                      <p className="text-gray-600">Дадлагын {evaluationData.latestEvaluation.weekNumber}-р долоо хоног</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </Card>
 
-            {/* Даалгаврууд */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Даалгаврууд</h2>
-              <Table 
-                dataSource={Array.isArray(evaluationData.assignedTasks) ? evaluationData.assignedTasks : []} 
-                columns={tasksColumns} 
-                rowKey="id"
-                pagination={false}
-              />
-            </Card>
-
-            {/* Үнэлгээний түүх */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Үнэлгээний түүх</h2>
-              <Collapse>
-                {evaluationData.evaluationHistory.map((evaluation) => (
-                  <Panel 
-                    key={evaluation.id} 
-                    header={
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{evaluation.date}</span>
-                        <span 
-                          className="font-bold" 
-                          style={{ color: getScoreColor(evaluation.overallScore) }}
-                        >
-                          {evaluation.overallScore.toFixed(1)} <Star className="inline-block h-4 w-4" />
-                        </span>
-                      </div>
-                    }
-                  >
-                    <div className="mb-4">
-                      <h3 className="text-md font-medium mb-2">Тайлбар:</h3>
-                      <p className="text-gray-600">{evaluation.comment}</p>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {Object.entries(evaluation.scores).map(([key, score]) => (
-                        <div key={key} className="flex items-center">
-                          <span className="text-gray-500 text-sm mr-2 capitalize">
-                            {key === 'attendance' && 'Ирц:'}
-                            {key === 'technical' && 'Техникийн ур чадвар:'}
-                            {key === 'teamwork' && 'Багаар ажиллах:'}
-                            {key === 'communication' && 'Харилцаа:'}
-                            {key === 'problemSolving' && 'Асуудал шийдвэрлэх:'}
-                          </span>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-medium mb-2">Дэлгэрэнгүй үнэлгээ</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {evaluationData.latestEvaluation && evaluationData.latestEvaluation.scores && Object.entries(evaluationData.latestEvaluation.scores).map(([key, score]) => (
+                        <div key={key} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                          <span className="text-gray-700">{getCategoryName(key)}</span>
                           <span 
-                            className="font-bold" 
+                            className="font-semibold" 
                             style={{ color: getScoreColor(score) }}
                           >
-                            {score.toFixed(1)}
+                            {score}/10
                           </span>
                         </div>
                       ))}
                     </div>
-                  </Panel>
-                ))}
-              </Collapse>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Тайлбар & санал</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-gray-700">{evaluationData.latestEvaluation.comment}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Үнэлгээ одоогоор байхгүй байна</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="mb-6 p-6">
+              <h2 className="text-xl font-semibold mb-4">Чадварын үнэлгээ</h2>
+              {evaluationData.skillRatings && evaluationData.skillRatings.length > 0 ? (
+                <div className="space-y-4">
+                  {evaluationData.skillRatings.map((skill, index) => (
+                    <div key={index} className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-gray-700">{skill.name}</span>
+                        <Rate disabled value={skill.rating} />
+                      </div>
+                      <Progress 
+                        percent={skill.rating * 20} 
+                        showInfo={false} 
+                        strokeColor={getProgressColor(skill.rating)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Чадварын үнэлгээ одоогоор байхгүй байна</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="mb-6 p-6">
+              <h2 className="text-xl font-semibold mb-4">Үнэлгээний түүх</h2>
+              {evaluationData.evaluationHistory && evaluationData.evaluationHistory.length > 0 ? (
+                <Collapse className="bg-white border-0">
+                  {evaluationData.evaluationHistory.map((evaluation, index) => (
+                    <Panel
+                      key={index}
+                      header={
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
+                            <span className="font-medium mr-2">{evaluation.weekNumber}-р долоо хоног</span>
+                            <span className="text-gray-500 text-sm">{evaluation.date}</span>
+                          </div>
+                          <span 
+                            className="font-bold" 
+                            style={{ color: getScoreColor(evaluation.overallScore) }}
+                          >
+                            {evaluation.overallScore}/10
+                          </span>
+                        </div>
+                      }
+                    >
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {evaluation.scores && Object.entries(evaluation.scores).map(([key, score]) => (
+                            <div key={key} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                              <span className="text-gray-700">{getCategoryName(key)}</span>
+                              <span 
+                                className="font-semibold" 
+                                style={{ color: getScoreColor(score) }}
+                              >
+                                {score}/10
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-gray-700">{evaluation.comment}</p>
+                        </div>
+                      </div>
+                    </Panel>
+                  ))}
+                </Collapse>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Үнэлгээний түүх одоогоор байхгүй байна</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Гүйцэтгэсэн даалгаврууд</h2>
+              {evaluationData.assignedTasks && evaluationData.assignedTasks.length > 0 ? (
+                <Table 
+                  dataSource={evaluationData.assignedTasks && Array.isArray(evaluationData.assignedTasks) ? evaluationData.assignedTasks : []} 
+                  columns={tasksColumns} 
+                  rowKey="id"
+                  pagination={false}
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Даалгаврын мэдээлэл одоогоор байхгүй байна</p>
+                </div>
+              )}
             </Card>
           </div>
           

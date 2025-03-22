@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import './index.css';
 import './styles/gradients.css';
 import 'antd/dist/reset.css';
+import './utils/i18n'; // i18n configuration
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

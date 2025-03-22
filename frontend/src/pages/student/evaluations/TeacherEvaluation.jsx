@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../components/UI/Card';
-import { Rate, Avatar, Collapse, Tooltip, Progress, Skeleton } from 'antd';
+import { Rate, Avatar, Collapse, Tooltip, Progress, Skeleton, Tag } from 'antd';
 import { User, Calendar, File, Check, XCircle, Star, Award } from 'lucide-react';
 import ErrorState from '../../../components/UI/ErrorState';
 import api from '../../../services/api';
@@ -17,7 +17,7 @@ const TeacherEvaluation = () => {
       try {
         setLoading(true);
         // API-аас багшийн үнэлгээний мэдээлэл авах
-        const response = await api.get('/api/student/evaluations/teacher');
+        const response = await api.get('/api/v1/internships/student/evaluations/teacher/');
         setEvaluationData(response.data);
       } catch (error) {
         console.error('Багшийн үнэлгээний мэдээлэл авахад алдаа гарлаа:', error);
@@ -48,48 +48,55 @@ const TeacherEvaluation = () => {
               name: 'Ирц, идэвх', 
               score: 18, 
               maxScore: 20,
-              comment: 'Ирц сайн, төлөвлөсөн хуваариар ажилласан.'
+              comment: 'Бүх хичээл, уулзалтад оролцсон.'
             },
             { 
-              name: 'Менторын үнэлгээ', 
-              score: 24, 
+              name: 'Техникийн чадвар', 
+              score: 25, 
               maxScore: 25,
-              comment: 'Менторын өгсөн үнэлгээ маш өндөр. Зарим санал хүсэлтүүдийг тооцов.'
+              comment: 'Техникийн даалгаврыг бүрэн гүйцэтгэсэн.'
             },
             { 
-              name: 'Бүтээлийн чанар', 
+              name: 'Хамтын ажиллагаа', 
               score: 15, 
               maxScore: 15,
-              comment: 'Дадлагын үеэр хийсэн бүтээл маш чанартай, бүрэн функционалтай.'
+              comment: 'Багийн гишүүдтэй сайн хамтран ажилласан.'
             }
           ],
-          reportFeedback: [
-            { 
-              id: 1, 
-              title: 'Дадлагын эцсийн тайлан', 
-              date: '2023-05-10',
-              status: 'approved',
-              feedback: 'Маш сайн бичигдсэн тайлан. Дүгнэлт хэсгийг илүү дэлгэрэнгүй бичих боломжтой байсан.',
-              score: 35,
-              maxScore: 40 
-            },
-            { 
-              id: 2, 
-              title: 'Дундын тайлан', 
-              date: '2023-03-20',
-              status: 'approved',
-              feedback: 'Дундын тайлан хангалттай сайн бичигдсэн. Техникийн хэсгийг илүү дэлгэрэнгүй тайлбарлах хэрэгтэй.',
+          progress: [
+            { week: 1, grade: 'B+', comment: 'Эхний долоо хоногт сайн дасан зохицсон.' },
+            { week: 2, grade: 'A-', comment: 'Даалгаврыг цагт нь гүйцэтгэсэн.' },
+            { week: 3, grade: 'A', comment: 'Шинэ технологи судлахдаа идэвхтэй байлаа.' },
+            { week: 4, grade: 'A', comment: 'Firebase мэдээллийн сантай ажиллах чадвар сайжирсан.' },
+            { week: 5, grade: 'A+', comment: 'Төслийн хүрээнд шинэлэг санаа гаргаж хэрэгжүүлсэн.' }
+          ],
+          reports: [
+            {
+              id: 1,
+              title: 'Эхний долоо хоногийн тайлан',
+              submittedDate: '2023-02-22',
+              status: 'Хянагдсан',
+              feedback: 'Тайлан цаг хугацаандаа хүлээн авсан. Тодорхой зорилтуудыг тусгасан байна.',
               score: 18,
-              maxScore: 20 
+              maxScore: 20
             },
-            { 
-              id: 3, 
-              title: 'Эхний тайлан', 
-              date: '2023-02-15',
-              status: 'approved',
-              feedback: 'Эхний тайлан сайн, дадлагын зорилго, зорилтууд тодорхой тусгагдсан.',
-              score: 15,
-              maxScore: 15 
+            {
+              id: 2,
+              title: 'Хоёр дахь долоо хоногийн тайлан',
+              submittedDate: '2023-03-01',
+              status: 'Хянагдсан',
+              feedback: 'Тайлангийн чанар өмнөхөөс сайжирсан. Хийсэн ажлуудын үр дүнг дэлгэрэнгүй оруулсан.',
+              score: 19,
+              maxScore: 20
+            },
+            {
+              id: 3,
+              title: 'Гурав дахь долоо хоногийн тайлан',
+              submittedDate: '2023-03-08',
+              status: 'Хянагдсан',
+              feedback: 'Маш сайн тайлан. Хийсэн ажилуудын тулгарсан бэрхшээл, шийдлүүдийг дэлгэрэнгүй оруулсан.',
+              score: 20,
+              maxScore: 20
             }
           ]
         });
@@ -131,13 +138,16 @@ const TeacherEvaluation = () => {
   const getStatusIcon = (status) => {
     switch(status) {
       case 'approved':
-        return <Check className="text-green-600 h-5 w-5" />;
-      case 'rejected':
-        return <XCircle className="text-red-600 h-5 w-5" />;
+      case 'Хянагдсан':
+        return <Tag color="green">Хянагдсан</Tag>;
       case 'pending':
-        return <div className="h-5 w-5 bg-yellow-500 rounded-full animate-pulse"></div>;
+      case 'Хүлээгдэж буй':
+        return <Tag color="orange">Хүлээгдэж буй</Tag>;
+      case 'rejected':
+      case 'Татгалзсан':
+        return <Tag color="red">Татгалзсан</Tag>;
       default:
-        return null;
+        return <Tag color="blue">{status}</Tag>;
     }
   };
 
@@ -228,7 +238,7 @@ const TeacherEvaluation = () => {
               <h2 className="text-xl font-semibold mb-4">Тайлангийн санал дүгнэлтүүд</h2>
               
               <Collapse>
-                {evaluationData.reportFeedback.map(report => (
+                {evaluationData.reports.map(report => (
                   <Panel 
                     key={report.id} 
                     header={
@@ -238,7 +248,7 @@ const TeacherEvaluation = () => {
                           <span className="font-medium">{report.title}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-500 mr-3">{report.date}</span>
+                          <span className="text-sm text-gray-500 mr-3">{report.submittedDate}</span>
                           <div className="flex items-center">
                             {getStatusIcon(report.status)}
                           </div>
@@ -324,8 +334,8 @@ const TeacherEvaluation = () => {
                 <li className="flex items-center justify-between">
                   <span className="text-gray-600">Нийт оноо:</span>
                   <span className="font-medium text-green-600">
-                    {evaluationData.criteria.reduce((total, item) => total + item.score, 0)}/
-                    {evaluationData.criteria.reduce((total, item) => total + item.maxScore, 0)}
+                    {evaluationData.criteria && evaluationData.criteria.reduce((total, item) => total + item.score, 0)}/
+                    {evaluationData.criteria && evaluationData.criteria.reduce((total, item) => total + item.maxScore, 0)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">

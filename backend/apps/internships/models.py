@@ -377,6 +377,14 @@ class InternshipApplication(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    internship_listing = models.ForeignKey(
+        'InternshipListing',
+        on_delete=models.CASCADE,
+        related_name='applications',
+        null=True,
+        blank=True,
+        help_text="Дадлагын зар"
+    )
 
     class Meta:
         ordering = ['-created_at']
@@ -396,3 +404,66 @@ class InternshipApplication(models.Model):
             if old_instance.status != self.status and self.status in ['accepted', 'rejected']:
                 self.reviewed_at = timezone.now()
         super().save(*args, **kwargs)
+
+class InternshipListing(models.Model):
+    """
+    Дадлагын зарын мэдээлэл
+    """
+    INTERNSHIP_TYPES = (
+        ('Бүтэн цагийн', 'Бүтэн цагийн'),
+        ('Хагас цагийн', 'Хагас цагийн'),
+        ('Зайнаас', 'Зайнаас'),
+        ('Уян хатан', 'Уян хатан'),
+    )
+    
+    INTERNSHIP_CATEGORIES = (
+        ('Програм хангамж', 'Програм хангамж'),
+        ('Дата шинжилгээ', 'Дата шинжилгээ'),
+        ('Кибер аюулгүй байдал', 'Кибер аюулгүй байдал'),
+        ('Маркетинг', 'Маркетинг'),
+        ('Бизнес', 'Бизнес'),
+        ('Санхүү', 'Санхүү'),
+        ('Барилга инженер', 'Барилга инженер'),
+        ('Бусад', 'Бусад'),
+    )
+    
+    id = models.AutoField(primary_key=True)
+    organization = models.CharField(max_length=255, help_text="Байгууллагын нэр")
+    position = models.CharField(max_length=255, help_text="Дадлагын нэр/Албан тушаал")
+    category = models.CharField(max_length=50, choices=INTERNSHIP_CATEGORIES, help_text="Дадлагын ангилал")
+    type = models.CharField(max_length=50, choices=INTERNSHIP_TYPES, help_text="Дадлагын төрөл")
+    location = models.CharField(max_length=255, help_text="Дадлагын байршил")
+    duration = models.CharField(max_length=100, help_text="Дадлагын хугацаа")
+    salary = models.CharField(max_length=255, blank=True, null=True, help_text="Цалин/Урамшуулал")
+    salary_amount = models.IntegerField(blank=True, null=True, help_text="Цалингийн хэмжээ (тоогоор)")
+    description = models.TextField(help_text="Дадлагын тодорхойлолт")
+    requirements = models.JSONField(default=list, help_text="Шаардлагууд (жагсаалт)")
+    benefits = models.JSONField(default=list, help_text="Давуу талууд (жагсаалт)")
+    responsibilities = models.JSONField(default=list, blank=True, null=True, help_text="Хариуцах ажлууд")
+    
+    logo = models.URLField(blank=True, null=True, help_text="Байгууллагын лого зургийн URL")
+    featured = models.BooleanField(default=False, help_text="Онцлох дадлага эсэх")
+    active = models.BooleanField(default=True, help_text="Идэвхтэй эсэх")
+    
+    applyDeadline = models.DateField(help_text="Хүсэлт хүлээн авах эцсийн хугацаа")
+    postedDate = models.DateField(auto_now_add=True, help_text="Нийтэлсэн огноо")
+    
+    contact_person = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='listings_contact',
+        null=True,
+        blank=True,
+        help_text="Холбоо барих хүн"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.position} - {self.organization}"
+    
+    class Meta:
+        ordering = ['-featured', '-postedDate']
+        verbose_name = "Дадлагын Зар"
+        verbose_name_plural = "Дадлагын Зарууд"

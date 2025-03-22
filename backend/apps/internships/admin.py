@@ -1,38 +1,80 @@
 from django.contrib import admin
 from .models import (
-    Internship, Task, Agreement, 
+    Internship, Task, Message, Agreement, 
     InternshipPlan, Report, Evaluation,
-    PreliminaryReport
+    InternshipApplication, InternshipListing
 )
+
+@admin.register(Internship)
+class InternshipAdmin(admin.ModelAdmin):
+    list_display = ('id', 'student', 'organization', 'mentor', 'status', 'start_date', 'end_date')
+    list_filter = ('status', 'organization')
+    search_fields = ('student__username', 'mentor__username', 'organization__name')
+    date_hierarchy = 'start_date'
+
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'internship', 'assigned_by', 'status', 'due_date')
+    list_filter = ('status', 'priority')
+    search_fields = ('title', 'description')
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'recipient', 'created_at', 'is_read')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('sender__username', 'recipient__username', 'content')
+
+@admin.register(Agreement)
+class AgreementAdmin(admin.ModelAdmin):
+    list_display = ('id', 'internship', 'created_at', 'status')
+    list_filter = ('status',)
+    search_fields = ('internship__student__username', 'internship__organization__name')
+
+@admin.register(InternshipPlan)
+class InternshipPlanAdmin(admin.ModelAdmin):
+    list_display = ('id', 'internship', 'created_at', 'status')
+    list_filter = ('status',)
+    search_fields = ('internship__student__username', 'objectives')
+
+@admin.register(Evaluation)
+class EvaluationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'report', 'evaluator', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('report__student__username', 'evaluator__username', 'comments')
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display = [
-        'student', 
-        'internship', 
-        'report_type', 
-        'status', 
-        'submitted_at'
-    ]
-    list_filter = [
-        'report_type', 
-        'status', 
-        'submitted_at'
-    ]
-    search_fields = [
-        'student__username', 
-        'student__first_name', 
-        'student__last_name',
-        'title',
-        'content'
-    ]
-    readonly_fields = ['submitted_at', 'evaluated_at']
-    raw_id_fields = ['student', 'internship', 'evaluated_by']
+    list_display = ('id', 'internship', 'title', 'submitted_at', 'status')
+    list_filter = ('status', 'submitted_at')
+    search_fields = ('internship__student__username', 'title', 'content')
 
-# Register other models
-admin.site.register(Internship)
-admin.site.register(Task)
-admin.site.register(Agreement)
-admin.site.register(InternshipPlan)
-admin.site.register(Evaluation)
-admin.site.register(PreliminaryReport)
+@admin.register(InternshipApplication)
+class InternshipApplicationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'student', 'status', 'created_at', 'reviewed_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('student__username', 'internship__organization__name', 'cover_letter')
+    
+@admin.register(InternshipListing)
+class InternshipListingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'organization', 'position', 'category', 'type', 'location', 'featured', 'active', 'applyDeadline')
+    list_filter = ('category', 'type', 'featured', 'active', 'postedDate')
+    search_fields = ('organization', 'position', 'description')
+    list_editable = ('featured', 'active')
+    date_hierarchy = 'postedDate'
+    fieldsets = (
+        ('Үндсэн мэдээлэл', {
+            'fields': ('organization', 'position', 'category', 'type', 'location', 'duration')
+        }),
+        ('Дэлгэрэнгүй мэдээлэл', {
+            'fields': ('description', 'requirements', 'benefits', 'responsibilities')
+        }),
+        ('Цалин', {
+            'fields': ('salary', 'salary_amount')
+        }),
+        ('Тохиргоо', {
+            'fields': ('logo', 'featured', 'active', 'applyDeadline')
+        }),
+        ('Холбоо барих', {
+            'fields': ('contact_person',)
+        }),
+    )

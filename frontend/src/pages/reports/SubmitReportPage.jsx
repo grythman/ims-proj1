@@ -1,120 +1,325 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import { ArrowLeft } from 'lucide-react';
+import { Card } from '../../components/UI/Card';
+import { Button } from '../../components/UI/Button';
+import { Calendar, FileText, Upload, Check, XCircle, ChevronLeft } from 'lucide-react';
+import { Input, Select, Spin, Tabs, message } from 'antd';
+import { useAuth } from '../../context/AuthContext';
 import ReportForm from '../../components/Reports/ReportForm';
 import api from '../../services/api';
 
+const { TabPane } = Tabs;
+const { TextArea } = Input;
+
 const SubmitReportPage = () => {
   const navigate = useNavigate();
-  const [internship, setInternship] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeInternship, setActiveInternship] = useState(null);
+  const [reportType, setReportType] = useState('weekly');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [files, setFiles] = useState([]);
+  const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
-    fetchCurrentInternship();
+    fetchActiveInternship();
+    fetchTemplates();
   }, []);
 
-  const fetchCurrentInternship = async () => {
+  const fetchActiveInternship = async () => {
     try {
-      const response = await api.get('/api/internships/my-internship/');
-      if (!response.data) {
-        throw new Error('No active internship found');
-      }
-      setInternship(response.data);
+      setLoading(true);
+      const response = await api.get('/api/v1/internships/my-internship/');
+      setActiveInternship(response.data);
     } catch (error) {
-      console.error('Error fetching internship:', error);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message ||
-                          error.message ||
-                          'Failed to load internship details';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      console.error('Идэвхтэй дадлага олох үед алдаа гарлаа:', error);
+      message.error('Идэвхтэй дадлагын мэдээлэл авахад алдаа гарлаа');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuccess = () => {
-    toast.success('Report submitted successfully!');
-    navigate('/student/reports');
+  const fetchTemplates = async () => {
+    try {
+      const response = await api.get('/api/v1/reports/templates/', {
+        params: {
+          is_active: true
+        }
+      });
+      setAvailableTemplates(response.data?.data || []);
+    } catch (error) {
+      console.error('Тайлангийн загварууд авах үед алдаа гарлаа:', error);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    
+    const validFiles = selectedFiles.filter(file => file.size <= MAX_FILE_SIZE);
+    
+    if (validFiles.length !== selectedFiles.length) {
+      message.warning('Зарим файлууд хэтэрхий том байна (25MB хязгаарлалт)');
+    }
+    
+    setFiles(validFiles);
+  };
+
+  const handleTemplateSelect = (templateId) => {
+    const template = availableTemplates.find(t => t.id === parseInt(templateId));
+    setSelectedTemplate(template);
+    if (template) {
+      setReportType(template.report_type);
+      setTitle(title || template.name);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      message.error('Тайлангийн гарчиг оруулна уу');
+      return;
+    }
+    
+    if (!content.trim()) {
+      message.error('Тайлангийн агуулга оруулна уу');
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', content);
+      formData.append('report_type', reportType);
+      
+      if (activeInternship?.id) {
+        formData.append('internship', activeInternship.id);
+      }
+      
+      files.forEach(file => {
+        formData.append('attachments', file);
+      });
+      
+      const response = await api.post('/api/v1/reports/submit/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      message.success('Тайлан амжилттай илгээгдлээ');
+      navigate('/student/reports/my');
+    } catch (error) {
+      console.error('Тайлан илгээхэд алдаа гарлаа:', error);
+      message.error('Тайлан илгээхэд алдаа гарлаа. Дахин оролдоно уу.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      <div className="flex justify-center items-center p-12">
+        <Spin size="large" />
       </div>
     );
   }
 
-  if (error) {
+  if (!activeInternship) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="text-red-500 mb-4">{error}</div>
-        <button
-          onClick={() => navigate('/student/dashboard')}
-          className="text-emerald-600 hover:text-emerald-700"
-        >
-          Return to Dashboard
-        </button>
+      <div className="p-6">
+        <Card className="p-8 text-center">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Идэвхтэй дадлага олдсонгүй</h2>
+          <p className="text-gray-600 mb-6">
+            Тайлан оруулахын тулд та идэвхтэй дадлагатай байх ёстой.
+          </p>
+          <Button onClick={() => navigate('/student/internship-listings')}>
+            Дадлага хайх
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <button
+    <div className="p-6">
+      <div className="mb-6">
+        <Button 
+          variant="ghost" 
           onClick={() => navigate(-1)}
-          className="flex items-center text-emerald-600 hover:text-emerald-700"
+          className="flex items-center text-gray-600"
         >
-          <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Reports
-        </button>
+          <ChevronLeft className="h-5 w-5 mr-1" />
+          Буцах
+        </Button>
       </div>
-
-      {/* Internship Info */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Submit Report
-        </h2>
-        <div className="mt-2 text-sm text-gray-500">
-          <p>
-            Internship at {internship.organization?.name}
-          </p>
-          <p className="mt-1">
-            {new Date(internship.start_date).toLocaleDateString()} - {new Date(internship.end_date).toLocaleDateString()}
-          </p>
-        </div>
+      
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Шинэ тайлан үүсгэх</h1>
+        <p className="text-gray-600">Дадлагын тайлангаа бөглөн багш, ментор нарт илгээнэ үү</p>
       </div>
-
-      {/* Report Form */}
-      <ReportForm 
-        internship={internship}
-        onSuccess={handleSuccess}
-      />
-
-      {/* Guidelines */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
-              Report Writing Guidelines
-            </h3>
-            <div className="mt-2 text-sm text-blue-700">
-              <ul className="list-disc list-inside space-y-1">
-                <li>Be specific and provide concrete examples</li>
-                <li>Focus on your learning outcomes and achievements</li>
-                <li>Include challenges faced and how you overcame them</li>
-                <li>Mention skills developed and knowledge gained</li>
-                <li>Proofread your report before submission</li>
-              </ul>
-            </div>
+      
+      <Card className="mb-6 p-4">
+        <h3 className="text-lg font-medium mb-2">Дадлагын мэдээлэл</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Байгууллага</p>
+            <p className="font-medium">{activeInternship.organization}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Албан тушаал</p>
+            <p className="font-medium">{activeInternship.position}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Ментор</p>
+            <p className="font-medium">{activeInternship.mentor}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Багш</p>
+            <p className="font-medium">{activeInternship.teacher}</p>
           </div>
         </div>
-      </div>
+      </Card>
+      
+      <Card className="p-6">
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн төрөл
+              </label>
+              <Select
+                value={reportType}
+                onChange={setReportType}
+                className="w-full"
+                options={[
+                  { value: 'weekly', label: 'Долоо хоногийн тайлан' },
+                  { value: 'monthly', label: 'Сарын тайлан' },
+                  { value: 'final', label: 'Эцсийн тайлан' }
+                ]}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн загвар (заавал биш)
+              </label>
+              <Select
+                value={selectedTemplate?.id}
+                onChange={handleTemplateSelect}
+                className="w-full"
+                placeholder="Загвар сонгох..."
+                allowClear
+                options={availableTemplates.map(template => ({
+                  value: template.id,
+                  label: template.name
+                }))}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн гарчиг
+              </label>
+              <Input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Тайлангийн гарчиг оруулах..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн агуулга
+              </label>
+              <TextArea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Тайлангийн дэлгэрэнгүй агуулга бичих..."
+                rows={12}
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Хавсралт файл (заавал биш)
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
+                    >
+                      <span>Файл сонгох</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        multiple
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                    <p className="pl-1">эсвэл чирч оруулах</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PDF, DOCX, XLSX, PNG файлууд (25MB хүртэл)
+                  </p>
+                  {files.length > 0 && (
+                    <div className="mt-2 text-left">
+                      <p className="text-sm font-medium">Сонгосон файлууд:</p>
+                      <ul className="mt-1 text-sm text-gray-500">
+                        {files.map((file, index) => (
+                          <li key={index} className="flex items-center">
+                            <FileText className="h-4 w-4 mr-1" />
+                            {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(-1)}
+              >
+                Цуцлах
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <Spin className="mr-2" />
+                    Илгээж байна...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Тайлан илгээх
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 };

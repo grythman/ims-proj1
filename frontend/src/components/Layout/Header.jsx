@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import {
     BellIcon,
     UserCircleIcon,
     Cog6ToothIcon,
-    ArrowRightOnRectangleIcon
+    ArrowRightOnRectangleIcon,
+    LanguageIcon
 } from '@heroicons/react/24/outline';
 
 const Header = () => {
     const { user, logout } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+    const { t } = useTranslation();
+    
+    const changeLanguage = (lng) => {
+        i18n.changeLanguage(lng);
+        setShowLanguageMenu(false);
+    };
 
     return (
         <header className="bg-white shadow-sm h-16 fixed top-0 left-0 right-0 z-50">
@@ -31,6 +41,34 @@ const Header = () => {
 
                 {/* Right Side Items */}
                 <div className="flex items-center space-x-4">
+                    {/* Language Selector */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                            className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                            aria-label="Change language"
+                        >
+                            <LanguageIcon className="h-6 w-6" />
+                        </button>
+                        
+                        {showLanguageMenu && (
+                            <div className="absolute right-0 mt-2 w-36 bg-white rounded-md shadow-lg py-1 z-50">
+                                <button
+                                    onClick={() => changeLanguage('mn')}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                    🇲🇳 Монгол
+                                </button>
+                                <button
+                                    onClick={() => changeLanguage('en')}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                    🇬🇧 English
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Notifications */}
                     <button className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
                         <BellIcon className="h-6 w-6" />
@@ -61,7 +99,7 @@ const Header = () => {
                                     onClick={() => setShowProfileMenu(false)}
                                 >
                                     <UserCircleIcon className="h-5 w-5 mr-3 text-gray-400" />
-                                    Profile
+                                    {t('profile')}
                                 </Link>
                                 <Link
                                     to="/settings"
@@ -69,7 +107,7 @@ const Header = () => {
                                     onClick={() => setShowProfileMenu(false)}
                                 >
                                     <Cog6ToothIcon className="h-5 w-5 mr-3 text-gray-400" />
-                                    Settings
+                                    {t('settings')}
                                 </Link>
                                 <button
                                     onClick={() => {
@@ -79,7 +117,7 @@ const Header = () => {
                                     className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
                                 >
                                     <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3 text-red-400" />
-                                    Sign out
+                                    {t('logout')}
                                 </button>
                             </div>
                         )}

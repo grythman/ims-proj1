@@ -41,6 +41,8 @@ import CreateReport from './pages/reports/CreateReport'
 import ViewReport from './pages/reports/ViewReport'
 import MentorEvaluation from './pages/student/evaluations/MentorEvaluation'
 import TeacherEvaluation from './pages/student/evaluations/TeacherEvaluation'
+import InternshipListings from './pages/student/InternshipListings'
+import InternshipDetails from './pages/student/InternshipDetails'
 
 // Dashboards
 import AdminDashboard from './pages/dashboard/AdminDashboard'
@@ -140,6 +142,8 @@ const App = () => {
                   <Route path="apply-internship" element={<ApplyInternship />} />
                   <Route path="applications" element={<ApplicationsPage />} />
                   <Route path="tasks" element={<Tasks />} />
+                  <Route path="internship-listings" element={<InternshipListings />} />
+                  <Route path="internship-details/:id" element={<InternshipDetails />} />
                   <Route path="evaluations/mentor" element={<MentorEvaluation />} />
                   <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
                 </Route>

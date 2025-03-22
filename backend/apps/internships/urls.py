@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'mentor/dashboard', views.MentorDashboardView, basename='mentor-dashboard')
 router.register(r'applications', views.InternshipApplicationViewSet, basename='application')
+router.register(r'listings', views.InternshipListingViewSet, basename='internship-listings')
 
 urlpatterns = [
     # Teacher specific endpoints
@@ -18,6 +19,11 @@ urlpatterns = [
     path('reports/submit/', views.SubmitReportView.as_view(), name='submit-report'),
     path('register/', views.InternshipRegistrationView.as_view(), name='internship-registration'),
     path('my-internship/', views.CurrentInternshipView.as_view(), name='current-internship'),
+    path('internship-listings/', views.InternshipListingViewSet.as_view({'get': 'list'}), name='internship-listings'),
+    path('internship-listings/<int:pk>/', views.InternshipListingViewSet.as_view({'get': 'retrieve'}), name='internship-listing-detail'),
+    path('internship-listings/<int:pk>/apply/', views.InternshipListingViewSet.as_view({'post': 'apply'}), name='internship-listing-apply'),
+    path('internship-listings/<int:pk>/bookmark/', views.InternshipListingViewSet.as_view({'post': 'bookmark'}), name='internship-listing-bookmark'),
+    path('internship-listings/bookmarked/', views.InternshipListingViewSet.as_view({'get': 'bookmarked'}), name='internship-listings-bookmarked'),
     
     # Mentor specific endpoints
     path('mentor/evaluate-report/<int:pk>/', views.MentorReportEvaluationView.as_view(), name='mentor-evaluate-report'),

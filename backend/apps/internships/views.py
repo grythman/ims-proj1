@@ -5,7 +5,7 @@ from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
-from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report, Message, InternshipApplication
+from .models import Internship, Task, Agreement, InternshipPlan, PreliminaryReport, Evaluation, Report, Message, InternshipApplication, InternshipListing
 from .serializers import (
     InternshipSerializer, 
     InternshipCreateSerializer,
@@ -24,7 +24,8 @@ from .serializers import (
     DashboardSerializer,
     MessageSerializer,
     StudentProfileSerializer,
-    InternshipApplicationSerializer
+    InternshipApplicationSerializer,
+    InternshipListingSerializer
 )
 from .permissions import IsInternshipParticipant, IsAgreementParticipant, IsTeacher, IsStudent
 from apps.notifications.services import NotificationService
@@ -1312,3 +1313,170 @@ class InternshipApplicationViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(application)
         return Response(serializer.data)
+
+class InternshipListingViewSet(viewsets.ModelViewSet):
+    """
+    API эндпойнт дадлагын жагсаалтыг удирдахад зориулсан
+    """
+    serializer_class = InternshipListingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category', 'location', 'type', 'featured']
+    search_fields = ['position', 'organization', 'description', 'requirements', 'benefits']
+    ordering_fields = ['postedDate', 'applyDeadline', 'salary']
+
+    def get_queryset(self):
+        queryset = InternshipListing.objects.all()
+        
+        # Шүүлтүүр категориор
+        category = self.request.query_params.get('category')
+        if category and category != 'all':
+            queryset = queryset.filter(category=category)
+            
+        # Шүүлтүүр өдрөөр
+        posted_after = self.request.query_params.get('posted_after')
+        if posted_after:
+            queryset = queryset.filter(postedDate__gte=posted_after)
+        
+        # Цалингийн хэмжээгээр шүүх
+        min_salary = self.request.query_params.get('min_salary')
+        max_salary = self.request.query_params.get('max_salary')
+        
+        if min_salary:
+            queryset = queryset.filter(Q(salary_amount__gte=min_salary) | Q(salary='Үнэ төлбөргүй'))
+            
+        if max_salary:
+            queryset = queryset.filter(Q(salary_amount__lte=max_salary) | Q(salary='Үнэ төлбөргүй'))
+            
+        # Дадлагын төрлөөр шүүх
+        internship_type = self.request.query_params.getlist('type')
+        if internship_type:
+            queryset = queryset.filter(type__in=internship_type)
+            
+        return queryset
+        
+    @action(detail=True, methods=['POST'])
+    def apply(self, request, pk=None):
+        """
+        Дадлагын хүсэлт илгээх
+        """
+        internship_listing = self.get_object()
+        student = request.user
+        
+        # Дадлагчин хэрэглэгч мөн эсэхийг шалгах
+        if student.user_type != 'student':
+            return Response(
+                {'error': 'Зөвхөн дадлагчин хэрэглэгч дадлагад хүсэлт илгээх боломжтой'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Аль хэдийн дадлагад хүсэлт илгээсэн эсэхийг шалгах
+        existing_application = InternshipApplication.objects.filter(
+            student=student,
+            internship_listing=internship_listing,
+            status__in=['pending', 'approved']
+        ).first()
+        
+        if existing_application:
+            return Response(
+                {'error': 'Та аль хэдийн энэ дадлагад хүсэлт илгээсэн байна', 
+                 'status': existing_application.status},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Өөр дадлага хийж байгаа эсэхийг шалгах
+        active_internship = Internship.objects.filter(
+            student=student,
+            status='active'
+        ).first()
+        
+        if active_internship:
+            return Response(
+                {'error': 'Та одоогоор өөр дадлага хийж байна, дууссаны дараа дахин хүсэлт илгээнэ үү'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Дадлагын хүсэлт үүсгэх
+        cover_letter = request.data.get('cover_letter', '')
+        resume = request.data.get('resume')
+        
+        application = InternshipApplication.objects.create(
+            student=student,
+            internship_listing=internship_listing,
+            status='pending',
+            cover_letter=cover_letter,
+            resume=resume
+        )
+        
+        # Мэдэгдэл үүсгэх
+        if internship_listing.contact_person:
+            NotificationService.create_notification(
+                recipient=internship_listing.contact_person,
+                title='Дадлагын шинэ хүсэлт',
+                message=f'{student.get_full_name()} таны дадлагад хүсэлт илгээлээ: {internship_listing.position}',
+                notification_type='application'
+            )
+            
+        return Response(
+            {'status': 'success', 'message': 'Дадлагын хүсэлт амжилттай илгээгдлээ'},
+            status=status.HTTP_201_CREATED
+        )
+        
+    @action(detail=True, methods=['POST'])
+    def bookmark(self, request, pk=None):
+        """
+        Дадлагын жагсаалтыг хадгалах/хадгалагдсанаас хасах
+        """
+        internship_listing = self.get_object()
+        student = request.user
+        
+        # Дадлагчин хэрэглэгч мөн эсэхийг шалгах
+        if student.user_type != 'student':
+            return Response(
+                {'error': 'Зөвхөн дадлагчин хэрэглэгч дадлагыг хадгалах боломжтой'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Хэрэглэгчийн хадгалсан дадлагуудын жагсаалт
+        if hasattr(student, 'bookmarked_listings'):
+            bookmarks = student.bookmarked_listings.all()
+            
+            if internship_listing in bookmarks:
+                # Хэрэв аль хэдийн хадгалсан бол хасах
+                student.bookmarked_listings.remove(internship_listing)
+                return Response(
+                    {'status': 'removed', 'message': 'Дадлага хадгалагдсанаас хасагдлаа'},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                # Хадгалаагүй бол нэмэх
+                student.bookmarked_listings.add(internship_listing)
+                return Response(
+                    {'status': 'added', 'message': 'Дадлага амжилттай хадгалагдлаа'},
+                    status=status.HTTP_200_OK
+                )
+        else:
+            return Response(
+                {'error': 'Хадгалах боломжгүй байна'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+    @action(detail=False, methods=['GET'])
+    def bookmarked(self, request):
+        """
+        Хадгалсан дадлагын жагсаалтыг авах
+        """
+        student = request.user
+        
+        if student.user_type != 'student':
+            return Response(
+                {'error': 'Зөвхөн дадлагчин хэрэглэгч хадгалсан дадлагын жагсаалтыг харах боломжтой'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        if hasattr(student, 'bookmarked_listings'):
+            bookmarks = student.bookmarked_listings.all()
+            serializer = self.get_serializer(bookmarks, many=True)
+            return Response(serializer.data)
+        else:
+            return Response([])

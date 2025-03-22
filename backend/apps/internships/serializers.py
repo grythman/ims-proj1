@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report, Message, InternshipApplication
+from .models import Internship, Task, Agreement, InternshipPlan, Evaluation, PreliminaryReport, Report, Message, InternshipApplication, InternshipListing
 from apps.users.serializers import UserSerializer
 from apps.companies.serializers import OrganizationSerializer
 from apps.reports.serializers import ReportSerializer
@@ -479,3 +479,50 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['student'] = self.context['request'].user
         return super().create(validated_data)
+
+class InternshipListingSerializer(serializers.ModelSerializer):
+    """
+    Дадлагын зарын мэдээллийг сериализдах класс
+    """
+    requirements = serializers.JSONField(required=False, default=list)
+    benefits = serializers.JSONField(required=False, default=list)
+    responsibilities = serializers.JSONField(required=False, default=list)
+    contact_person_name = serializers.SerializerMethodField()
+    applications_count = serializers.SerializerMethodField()
+    is_bookmarked = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = InternshipListing
+        fields = [
+            'id', 'organization', 'position', 'category', 'type', 'location', 
+            'duration', 'salary', 'salary_amount', 'description', 'requirements', 
+            'benefits', 'responsibilities', 'logo', 'featured', 'active', 
+            'applyDeadline', 'postedDate', 'contact_person', 'contact_person_name', 
+            'applications_count', 'is_bookmarked'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'applications_count', 'is_bookmarked']
+        
+    def get_contact_person_name(self, obj):
+        if obj.contact_person:
+            return obj.contact_person.get_full_name() or obj.contact_person.username
+        return None
+        
+    def get_applications_count(self, obj):
+        return obj.applications.count() if hasattr(obj, 'applications') else 0
+        
+    def get_is_bookmarked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and hasattr(request.user, 'bookmarked_listings'):
+            return obj in request.user.bookmarked_listings.all()
+        return False
+        
+    def validate(self, data):
+        # Make sure applyDeadline is in the future
+        if 'applyDeadline' in data and data['applyDeadline'] < timezone.now().date():
+            raise serializers.ValidationError({'applyDeadline': 'Хүсэлт хүлээн авах хугацаа ирээдүйд байх шаардлагатай'})
+        
+        # Ensure salary amount is valid if provided
+        if 'salary_amount' in data and data['salary_amount'] is not None and data['salary_amount'] < 0:
+            raise serializers.ValidationError({'salary_amount': 'Цалингийн хэмжээ 0-ээс их байх ёстой'})
+        
+        return data

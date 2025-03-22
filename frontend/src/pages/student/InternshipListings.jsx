@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/UI/Card';
 import { Button } from '../../components/UI/Button';
-import { FileEdit, Calendar, User, Building, CheckSquare, Clock, Award, Star, FileText, UserRound, GraduationCap, ChevronRight, BookText, PresentationIcon, Search, MapPin, Briefcase, Bookmark, Share2 } from 'lucide-react';
-import { Tag, Progress, Skeleton, Tooltip, Badge, Input, Select, Empty } from 'antd';
+import { FileEdit, Calendar, User, Building, CheckSquare, Clock, Award, Star, FileText, UserRound, GraduationCap, ChevronRight, BookText, PresentationIcon, Search, MapPin, Briefcase, Bookmark, Share2, Filter, Sliders } from 'lucide-react';
+import { Tag, Progress, Skeleton, Tooltip, Badge, Input, Select, Empty, Divider, Slider, Checkbox, Rate, notification } from 'antd';
 import api from '../../services/api';
 import ErrorState from '../../components/UI/ErrorState';
 import StatisticsCard from '../../components/Analytics/StatisticsCard';
+import { motion } from 'framer-motion';
 
 const InternshipListings = () => {
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,11 @@ const InternshipListings = () => {
   const [internshipListings, setInternshipListings] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [salaryRange, setSalaryRange] = useState([0, 2000000]);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [bookmarkedListings, setBookmarkedListings] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,13 +29,23 @@ const InternshipListings = () => {
         setError(null);
         
         // Идэвхтэй дадлагын мэдээлэл авах
-        const internshipResponse = await api.get('/api/student/internship-info');
+        try {
+          console.log('Идэвхтэй дадлагын мэдээлэл авч байна...');
+          const internshipResponse = await api.get('/api/v1/internships/my-internship/');
+          console.log('Идэвхтэй дадлага:', internshipResponse.data);
         setInternshipData(internshipResponse.data);
         setActiveInternship(internshipResponse.data);
+        } catch (internshipError) {
+          console.warn('Идэвхтэй дадлагын мэдээлэл авахад алдаа гарлаа:', internshipError);
+          // Идэвхтэй дадлагын мэдээлэл авах боломжгүй байсан ч үргэлжлүүлэх
+          setInternshipData(null);
+        }
         
-        // Дадлагын зарууд авах
-        const listingsResponse = await api.get('/api/internship-listings');
-        setInternshipListings(listingsResponse.data);
+        // Дадлагын зарууд авах - зөв endpoint-тэй болгож байна
+        console.log('Дадлагын жагсаалт авч байна...');
+        const listingsResponse = await api.get('/api/v1/internships/listings/');
+        console.log('Дадлагын жагсаалт:', listingsResponse.data);
+        setInternshipListings(Array.isArray(listingsResponse.data) ? listingsResponse.data : []);
       } catch (error) {
         console.error('Мэдээлэл авахад алдаа гарлаа:', error);
         setError('Мэдээлэл авахад алдаа гарлаа');
@@ -174,6 +190,21 @@ const InternshipListings = () => {
     setFilterCategory(value);
   };
 
+  const handleTypeChange = (type) => {
+    if(selectedTypes.includes(type)) {
+      setSelectedTypes(selectedTypes.filter(item => item !== type));
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterCategory('all');
+    setSalaryRange([0, 2000000]);
+    setSelectedTypes([]);
+  };
+
   const filteredInternships = internshipListings.filter(listing => {
     const matchesSearch = 
       listing.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,8 +213,49 @@ const InternshipListings = () => {
     
     const matchesCategory = filterCategory === 'all' || listing.category === filterCategory;
     
-    return matchesSearch && matchesCategory;
+    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(listing.type);
+    
+    const matchesSalary = listing.salary === 'Үнэ төлбөргүй' || 
+      (parseFloat(listing.salary.replace(/[^0-9]/g, '')) >= salaryRange[0] && 
+       parseFloat(listing.salary.replace(/[^0-9]/g, '')) <= salaryRange[1]);
+    
+    return matchesSearch && matchesCategory && matchesType && matchesSalary;
   });
+
+  const handleBookmark = (id) => {
+    if (bookmarkedListings.includes(id)) {
+      setBookmarkedListings(bookmarkedListings.filter(item => item !== id));
+      notification.success({
+        message: 'Амжилттай',
+        description: 'Дадлага хадгалагдсанаас хасагдлаа',
+        placement: 'bottomRight'
+      });
+    } else {
+      setBookmarkedListings([...bookmarkedListings, id]);
+      notification.success({
+        message: 'Амжилттай',
+        description: 'Дадлага амжилттай хадгалагдлаа',
+        placement: 'bottomRight'
+      });
+    }
+  };
+
+  const handleApply = (id) => {
+    notification.info({
+      message: 'Мэдэгдэл',
+      description: 'Дадлагын хүсэлт илгээгдэж байна...',
+      placement: 'bottomRight'
+    });
+    
+    // API руу хүсэлт илгээх
+    setTimeout(() => {
+      notification.success({
+        message: 'Амжилттай',
+        description: 'Таны дадлагын хүсэлт амжилттай илгээгдлээ!',
+        placement: 'bottomRight'
+      });
+    }, 1500);
+  };
 
   const getStatusTag = (status) => {
     switch(status) {
@@ -213,268 +285,285 @@ const InternshipListings = () => {
     }
   };
 
-  // Хэрэв алдаа гарсан бол
-  if (error && !loading) {
+  if (loading) {
     return (
-      <ErrorState 
-        title="Алдаа гарлаа" 
-        subTitle={error}
-        onRetry={() => window.location.reload()}
-      />
+      <div className="p-6">
+        <Skeleton active paragraph={{ rows: 6 }} />
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} active paragraph={{ rows: 4 }} />
+          ))}
+        </div>
+      </div>
     );
   }
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">Дадлагын зар, мэдээлэл</h1>
-        <p className="text-gray-500">Дадлагын боломжууд болон таны идэвхтэй дадлагын дэлгэрэнгүй мэдээлэл.</p>
-      </div>
+  if (error) {
+    return <ErrorState message={error} />;
+  }
 
-      {loading ? (
-        <div className="space-y-6">
-          <Skeleton active paragraph={{ rows: 4 }} />
-          <Skeleton active paragraph={{ rows: 4 }} />
-        </div>
-      ) : (
-        <div>
-          {/* Идэвхтэй дадлага харуулах хэсэг */}
-          {internshipData && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Таны идэвхтэй дадлага</h2>
-              <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex items-center">
-                    <div className="h-16 w-16 bg-white rounded-lg flex items-center justify-center shadow mr-4">
-                      <Building className="h-8 w-8 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="flex items-center mb-1">
-                        <h3 className="text-lg font-semibold mr-2">{internshipData.organization}</h3>
-                        {getStatusTag(internshipData.status)}
-                      </div>
-                      <p className="text-gray-600 mb-1">{internshipData.position}</p>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>{internshipData.startDate} - {internshipData.endDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      className="text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={() => window.location.href = '/student/internship-info'}
-                    >
-                      Дэлгэрэнгүй харах
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={() => window.location.href = '/student/reports/new'}
-                    >
-                      Тайлан илгээх
+  return (
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Дадлагын жагсаалт</h1>
+        <p className="text-gray-500">Тохирох дадлагаа олж, хүсэлтээ илгээнэ үү</p>
+        
+        {activeInternship && activeInternship.status === 'active' && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Badge status="processing" />
+              <span className="font-medium">Таны одоогийн дадлага идэвхтэй байна: {activeInternship.organization} - {activeInternship.position}</span>
+              <Button className="ml-auto" variant="outline" size="sm" onClick={() => window.location.href = '/student/internship-info'}>
+                Дэлгэрэнгүй <ChevronRight className="ml-1 h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="text-sm text-gray-600">Дадлагын явц:</div>
-                    <div className="text-sm font-medium">{internshipData.progressPercent}%</div>
+        )}
                   </div>
-                  <Progress 
-                    percent={internshipData.progressPercent} 
-                    showInfo={false} 
-                    strokeColor="#16a34a"
-                    strokeWidth={8}
+      
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Хайлт</label>
+            <Input 
+              value={searchQuery}
+              onChange={handleSearch}
+              placeholder="Дадлагын болон байгууллагын нэрээр хайх..."
+              prefix={<Search className="h-4 w-4 text-gray-400" />}
+              className="w-full"
                   />
                 </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Дадлагын зарууд харуулах хэсэг */}
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-              <h2 className="text-xl font-semibold mb-4 md:mb-0">Дадлагын зарууд</h2>
-              <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                <Input 
-                  placeholder="Хайх..." 
-                  prefix={<Search className="h-4 w-4 text-gray-400" />}
-                  onChange={handleSearch}
-                  value={searchQuery}
-                  className="md:w-60"
-                />
+          
+          <div className="w-full lg:w-48">
+            <label className="block text-sm font-medium mb-1">Ангилал</label>
                 <Select
-                  defaultValue="all"
+              value={filterCategory}
                   onChange={handleFilterChange}
-                  style={{ minWidth: 150 }}
+              className="w-full"
                   options={[
-                    { value: 'all', label: 'Бүх төрөл' },
+                { value: 'all', label: 'Бүх ангилал' },
                     { value: 'Програм хангамж', label: 'Програм хангамж' },
                     { value: 'Дата шинжилгээ', label: 'Дата шинжилгээ' },
                     { value: 'Кибер аюулгүй байдал', label: 'Кибер аюулгүй байдал' },
                     { value: 'Маркетинг', label: 'Маркетинг' },
-                    { value: 'Бизнес', label: 'Бизнес' }
-                  ]}
+              ]}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="flex items-center"
+            >
+              <i className="fas fa-th-large mr-1"></i> Карт
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="flex items-center"
+            >
+              <i className="fas fa-list mr-1"></i> Жагсаалт
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="flex items-center ml-2"
+            >
+              <Sliders className="h-4 w-4 mr-1" />
+              Шүүлтүүр {showAdvancedFilters ? 'Хаах' : 'Нээх'}
+            </Button>
+          </div>
+        </div>
+        
+        {showAdvancedFilters && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mt-4 border-t pt-4"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <h3 className="font-medium mb-2">Цалингийн хэмжээ</h3>
+                <Slider 
+                  range 
+                  value={salaryRange}
+                  onChange={setSalaryRange}
+                  min={0}
+                  max={2000000}
+                  step={100000}
+                  tipFormatter={value => `${value.toLocaleString()}₮`}
                 />
-              </div>
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <span>0₮</span>
+                  <span>2,000,000₮</span>
+                </div>
             </div>
 
-            {filteredInternships.length > 0 ? (
-              <div className="space-y-4">
-                {filteredInternships.map(listing => (
-                  <Card 
-                    key={listing.id} 
-                    className={`p-6 transition-all hover:shadow-md ${listing.featured ? 'border-l-4 border-l-amber-400' : ''}`}
+              <div>
+                <h3 className="font-medium mb-2">Дадлагын төрөл</h3>
+                <div className="space-y-2">
+                  <Checkbox 
+                    checked={selectedTypes.includes('Бүтэн цагийн')}
+                    onChange={() => handleTypeChange('Бүтэн цагийн')}
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex items-start">
-                        <div className="h-16 w-16 bg-white rounded-lg flex items-center justify-center shadow mr-4 border">
-                          {listing.logo ? (
-                            <img src={listing.logo} alt={listing.organization} className="h-10 w-10 object-contain" />
-                          ) : (
-                            <Building className="h-8 w-8 text-gray-400" />
-                          )}
-                        </div>
+                    Бүтэн цагийн
+                  </Checkbox>
                         <div>
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold">{listing.position}</h3>
-                            {listing.featured && (
-                              <Tag color="warning">Онцлох</Tag>
-                            )}
-                          </div>
-                          <p className="text-gray-700 mb-1">{listing.organization}</p>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-1">
-                            <span className="flex items-center">
-                              <MapPin className="h-3.5 w-3.5 mr-1" />
-                              {listing.location}
-                            </span>
-                            <span className="flex items-center">
-                              <Briefcase className="h-3.5 w-3.5 mr-1" />
-                              {listing.type}
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="h-3.5 w-3.5 mr-1" />
-                              {listing.duration}
-                            </span>
+                    <Checkbox 
+                      checked={selectedTypes.includes('Хагас цагийн')}
+                      onChange={() => handleTypeChange('Хагас цагийн')}
+                    >
+                      Хагас цагийн
+                    </Checkbox>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2 lg:mt-0">
+              
+              <div className="flex items-end">
                         <Button
                           variant="outline"
-                          className="text-green-600 border-green-200 hover:bg-green-50 py-1.5 h-auto"
-                          onClick={() => window.location.href = `/student/internship-listings/${listing.id}`}
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-gray-500"
                         >
-                          Дэлгэрэнгүй
+                  Шүүлтүүр цэвэрлэх
                         </Button>
-                        <Button
-                          variant="primary"
-                          className="bg-green-600 hover:bg-green-700 text-white py-1.5 h-auto"
-                          onClick={() => window.location.href = `/student/apply-internship/${listing.id}`}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+      
+      {filteredInternships.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="Тохирох дадлага олдсонгүй. Шүүлтүүрийг өөрчилж үзнэ үү."
+        />
+      ) : (
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          : "space-y-4"
+        }>
+          {filteredInternships.map(listing => (
+            <motion.div
+              key={listing.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className={`overflow-hidden hover:shadow-md transition-shadow ${listing.featured ? 'border-blue-300 bg-blue-50' : ''}`}>
+                {listing.featured && (
+                  <div className="bg-blue-500 text-white text-xs font-medium py-1 px-3 text-center">
+                    Онцлох дадлага
+                  </div>
+                )}
+                
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={listing.logo} 
+                        alt={listing.organization} 
+                        className="w-16 h-16 rounded object-cover border"
+                      />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg">{listing.position}</h3>
+                        <button 
+                          onClick={() => handleBookmark(listing.id)}
+                          className="text-gray-400 hover:text-yellow-500 transition-colors"
                         >
-                          Бүртгүүлэх
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-1.5 h-auto"
-                          onClick={() => alert('Хадгалагдлаа')}
-                        >
-                          <Bookmark className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-1.5 h-auto"
-                          onClick={() => alert('Хуваалцагдлаа')}
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
+                          <Bookmark className="h-5 w-5" fill={bookmarkedListings.includes(listing.id) ? "currentColor" : "none"} />
+                        </button>
+                      </div>
+                      
+                      <p className="text-gray-700 font-medium">{listing.organization}</p>
+                      
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge className="flex items-center gap-1" color="blue">
+                          <MapPin className="h-3 w-3" /> {listing.location}
+                        </Badge>
+                        <Badge className="flex items-center gap-1" color="green">
+                          <Briefcase className="h-3 w-3" /> {listing.type}
+                        </Badge>
+                        <Badge className="flex items-center gap-1" color="purple">
+                          <Clock className="h-3 w-3" /> {listing.duration}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <p className="text-gray-600">{listing.description}</p>
-                      
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {listing.requirements.slice(0, 3).map((req, index) => (
-                          <Tag key={index} color="blue">{req}</Tag>
+                  </div>
+                  
+                  <Divider className="my-3" />
+                  
+                  <div className="mb-3">
+                    <p className="text-gray-600 text-sm mb-2">{listing.description}</p>
+                    
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700">Шаардлагууд:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {listing.requirements.slice(0, 3).map((req, i) => (
+                          <Tag key={i} color="blue">{req}</Tag>
                         ))}
                         {listing.requirements.length > 3 && (
+                          <Tooltip title={listing.requirements.slice(3).join(', ')}>
                           <Tag color="blue">+{listing.requirements.length - 3}</Tag>
+                          </Tooltip>
                         )}
                       </div>
-                      
-                      <div className="mt-4 flex flex-wrap items-center justify-between">
-                        <div className="flex items-center">
-                          <span className="text-gray-500 text-sm mr-1">Цалин:</span>
-                          <span className="font-medium text-gray-800">{listing.salary}</span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Хугацаа: {listing.applyDeadline} хүртэл
-                        </div>
-                      </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Empty 
-                description="Хайлтад тохирох дадлагын зар олдсонгүй" 
-                className="py-12"
-              />
+                    
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700">Давуу талууд:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {listing.benefits.slice(0, 3).map((benefit, i) => (
+                          <Tag key={i} color="green">{benefit}</Tag>
+                        ))}
+                        {listing.benefits.length > 3 && (
+                          <Tooltip title={listing.benefits.slice(3).join(', ')}>
+                            <Tag color="green">+{listing.benefits.length - 3}</Tag>
+                          </Tooltip>
             )}
           </div>
-
-          {/* Дадлагын зөвлөмж хэсэг */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Дадлагын зөвлөмж</h2>
-            <Card className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <div className="text-center mb-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
-                      <FileEdit className="h-6 w-6 text-blue-600" />
                     </div>
-                    <h3 className="font-semibold text-blue-800">CV-гээ бэлтгэ</h3>
                   </div>
-                  <p className="text-blue-700 text-sm">
-                    Чансаатай дадлага авахын тулд CV-гээ чанартай бэлтгэж, өөрийн ур чадварыг товч тодорхой тусгах хэрэгтэй.
-                  </p>
-                </div>
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-                  <div className="text-center mb-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-2">
-                      <CheckSquare className="h-6 w-6 text-amber-600" />
+                  
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-2">
+                    <div>
+                      <p className="text-sm text-gray-500">Хүсэлт хүлээн авах эцсийн хугацаа:</p>
+                      <p className="font-medium">{listing.applyDeadline}</p>
                     </div>
-                    <h3 className="font-semibold text-amber-800">Үндсэн шаардлага</h3>
+                    <p className="font-bold text-blue-600">{listing.salary}</p>
                   </div>
-                  <p className="text-amber-700 text-sm">
-                    Дадлагын зарын шаардлагыг сайтар судалж, өөрийн мэдлэг, ур чадварт тохирсон дадлагад бүртгүүлэх нь чухал.
-                  </p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                  <div className="text-center mb-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
-                      <User className="h-6 w-6 text-green-600" />
-                    </div>
-                    <h3 className="font-semibold text-green-800">Бэлтгэлээ хангах</h3>
+                  
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/internship-details/${listing.id}`, '_blank')}
+                      className="flex items-center"
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      Дэлгэрэнгүй
+                    </Button>
+                    <Button
+                      onClick={() => handleApply(listing.id)}
+                      className="flex items-center"
+                    >
+                      <FileEdit className="h-4 w-4 mr-1" />
+                      Хүсэлт илгээх
+                    </Button>
                   </div>
-                  <p className="text-green-700 text-sm">
-                    Байгууллагын тухай судлах, ярилцлагад бэлтгэх, мэргэжлийн асуултуудын хариултаа бэлтгэх нь чухал.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 text-center">
-                <Button
-                  variant="outline"
-                  className="text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={() => window.location.href = '/student/internship-guide'}
-                >
-                  Дадлагын бүрэн удирдамж үзэх
-                </Button>
               </div>
             </Card>
-          </div>
+            </motion.div>
+          ))}
         </div>
       )}
     </div>

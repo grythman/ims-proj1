@@ -13,10 +13,12 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^10.18.0",
+    "i18next": "^24.2.3",
     "lucide-react": "^0.241.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
+    "react-i18next": "^15.4.1",
     "react-router-dom": "^6.28.0",
     "react-scripts": "5.0.1",
     "recharts": "^2.13.3",
@@ -25,6 +27,7 @@
   },
   "scripts": {
     "start": "craco start",
+    "dev": "craco start",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject"

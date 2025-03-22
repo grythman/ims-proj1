@@ -15,7 +15,7 @@ const ReportTemplateList = ({
   if (!templates?.length) {
     return (
       <Card className="p-6 text-center text-gray-500">
-        No templates found
+        Загвар олдсонгүй
       </Card>
     );
   }
@@ -41,7 +41,7 @@ const ReportTemplateList = ({
                     {template.name}
                   </h3>
                   <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                    {template.report_type_display}
+                    {getReportTypeDisplay(template.report_type)}
                   </span>
                 </div>
 
@@ -50,20 +50,20 @@ const ReportTemplateList = ({
                 </p>
 
                 <div className="mt-2 text-sm text-gray-500">
-                  Created by {template.created_by_name} on{' '}
-                  {format(new Date(template.created_at), 'MMM d, yyyy')}
+                  Үүсгэсэн: {template.created_by_name || 'Тодорхойгүй'} - {' '}
+                  {format(new Date(template.created_at || new Date()), 'yyyy-MM-dd')}
                 </div>
 
                 <div className="mt-2">
                   <h4 className="text-sm font-medium text-gray-700">
-                    Sections ({template.sections.length}):
+                    Хэсгүүд ({template.sections?.length || 0}):
                   </h4>
                   <div className="mt-1 grid grid-cols-2 gap-2">
-                    {template.sections.map((section, index) => (
+                    {template.sections?.map((section, index) => (
                       <div key={index} className="text-sm text-gray-500">
                         • {section.title}
                       </div>
-                    ))}
+                    )) || 'Хэсэг байхгүй'}
                   </div>
                 </div>
               </div>
@@ -72,34 +72,34 @@ const ReportTemplateList = ({
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onTemplateEdit(template);
+                    onTemplateEdit && onTemplateEdit(template);
                   }}
                   variant="outline"
                   className="w-full"
                 >
-                  Edit
+                  Засах
                 </Button>
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onTemplateDuplicate(template.id);
+                    onTemplateDuplicate && onTemplateDuplicate(template);
                   }}
                   variant="outline"
                   className="w-full"
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Duplicate
+                  Хуулах
                 </Button>
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onTemplateArchive(template.id);
+                    onTemplateArchive && onTemplateArchive(template);
                   }}
                   variant="danger"
                   className="w-full"
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  Archive
+                  Архивлах
                 </Button>
               </div>
             </div>
@@ -108,6 +108,20 @@ const ReportTemplateList = ({
       ))}
     </div>
   );
+};
+
+// Тайлангийн төрлийг Монгол хэлээр харуулах
+const getReportTypeDisplay = (type) => {
+  switch(type) {
+    case 'weekly':
+      return 'Долоо хоногийн';
+    case 'monthly':
+      return 'Сарын';
+    case 'final':
+      return 'Эцсийн';
+    default:
+      return type || 'Бусад';
+  }
 };
 
 export default ReportTemplateList; 
