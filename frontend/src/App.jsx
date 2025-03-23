@@ -43,18 +43,12 @@ import MentorEvaluation from './pages/student/evaluations/MentorEvaluation'
 import TeacherEvaluation from './pages/student/evaluations/TeacherEvaluation'
 import InternshipListings from './pages/student/InternshipListings'
 import InternshipDetails from './pages/student/InternshipDetails'
-import StudentSchedule from './pages/student/Schedule'
-import ReportAssistant from './pages/student/ai/ReportAssistant'
-import TaskAdvisor from './pages/student/ai/TaskAdvisor'
-import ChatAssistant from './pages/student/ai/ChatAssistant'
-import EvaluationAssistant from './pages/mentor/ai/EvaluationAssistant'
 
 // Dashboards
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import MentorDashboard from './pages/dashboard/MentorDashboard'
 import StudentDashboard from './pages/dashboard/StudentDashboard'
 import TeacherDashboard from './pages/dashboard/TeacherDashboard'
-import MentorStudents from './pages/mentor/MentorStudents'
 
 // Configure dayjs locale
 dayjs.locale('mn')
@@ -129,32 +123,44 @@ const App = () => {
               {/* Protected Dashboard Routes */}
               <Route element={<DashboardLayout />}>
                 {/* Student Routes */}
-                <Route path="student" element={<RoleRoute allowedRoles={['student']} />}>
-                  <Route path="dashboard" element={<StudentDashboard />} />
-                  <Route path="internships" element={<InternshipListings />} />
-                  <Route path="reports/submit" element={<SubmitReportPage />} />
-                  <Route path="ai/report-assistant" element={<ReportAssistant />} />
-                  <Route path="ai/task-advisor" element={<TaskAdvisor />} />
-                  <Route path="ai/chat-assistant" element={<ChatAssistant />} />
+                <Route
+                  path="/student"
+                  element={
+                    <RoleRoute allowedRoles={['student']}>
+                      <StudentDashboardLayout>
+                        <Outlet />
+                      </StudentDashboardLayout>
+                    </RoleRoute>
+                  }
+                >
+                  <Route index element={<StudentDashboard />} />
                   <Route path="reports/new" element={<SubmitReportPage />} />
                   <Route path="reports/my" element={<ReviewReportsPage />} />
                   <Route path="reports/templates" element={<ReportTemplatesPage />} />
                   <Route path="reports/create" element={<CreateReport />} />
                   <Route path="reports/view/:id" element={<ViewReport />} />
+                  <Route path="reports/submit" element={<SubmitReportPage />} />
                   <Route path="apply-internship" element={<ApplyInternship />} />
                   <Route path="applications" element={<ApplicationsPage />} />
                   <Route path="tasks" element={<Tasks />} />
+                  <Route path="internship-listings" element={<InternshipListings />} />
                   <Route path="internship-details/:id" element={<InternshipDetails />} />
                   <Route path="evaluations/mentor" element={<MentorEvaluation />} />
                   <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
-                  <Route path="schedule" element={<StudentSchedule />} />
                 </Route>
 
                 {/* Mentor Routes */}
-                <Route path="mentor" element={<RoleRoute allowedRoles={['mentor']} />}>
-                  <Route path="dashboard" element={<MentorDashboard />} />
-                  <Route path="students" element={<MentorStudents />} />
-                  <Route path="ai/evaluation-assistant" element={<EvaluationAssistant />} />
+                <Route
+                  path="/mentor"
+                  element={
+                    <RoleRoute allowedRoles={['mentor']}>
+                      <MentorDashboardLayout>
+                        <Outlet />
+                      </MentorDashboardLayout>
+                    </RoleRoute>
+                  }
+                >
+                  <Route index element={<MentorDashboard />} />
                   <Route path="reports/submitted" element={<ReviewReportsPage />} />
                   <Route path="reports/templates" element={<ReportTemplatesPage />} />
                   <Route path="reports/view/:id" element={<ViewReport />} />

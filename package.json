@@ -14,9 +14,5 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
-  },
-  "dependencies": {
-    "moment": "^2.30.1",
-    "react-big-calendar": "^1.18.0"
   }
 }

@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .api.schedule import ScheduleAPI
 
 router = DefaultRouter()
 router.register(r'mentor/dashboard', views.MentorDashboardView, basename='mentor-dashboard')
@@ -25,9 +24,6 @@ urlpatterns = [
     path('internship-listings/<int:pk>/apply/', views.InternshipListingViewSet.as_view({'post': 'apply'}), name='internship-listing-apply'),
     path('internship-listings/<int:pk>/bookmark/', views.InternshipListingViewSet.as_view({'post': 'bookmark'}), name='internship-listing-bookmark'),
     path('internship-listings/bookmarked/', views.InternshipListingViewSet.as_view({'get': 'bookmarked'}), name='internship-listings-bookmarked'),
-    
-    # Schedule API endpoint
-    path('schedule/', ScheduleAPI.as_view(), name='schedule'),
     
     # Mentor specific endpoints
     path('mentor/evaluate-report/<int:pk>/', views.MentorReportEvaluationView.as_view(), name='mentor-evaluate-report'),

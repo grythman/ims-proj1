@@ -426,7 +426,7 @@ const SubmitReportPage = () => {
           Буцах
         </Button>
       </div>
-
+      
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Шинэ тайлан үүсгэх</h1>
         <p className="text-gray-600">Дадлагын тайлангаа бөглөн багш, ментор нарт илгээнэ үү</p>

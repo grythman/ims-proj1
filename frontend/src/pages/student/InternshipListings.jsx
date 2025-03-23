@@ -401,7 +401,7 @@ const InternshipListings = () => {
                 <div className="flex justify-between text-sm text-gray-500 mt-1">
                   <span>0₮</span>
                   <span>2,000,000₮</span>
-              </div>
+                </div>
             </div>
 
               <div>
@@ -543,8 +543,8 @@ const InternshipListings = () => {
                   </div>
                   
                   <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  variant="outline"
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => window.open(`/internship-details/${listing.id}`, '_blank')}
                       className="flex items-center"
@@ -558,7 +558,7 @@ const InternshipListings = () => {
                     >
                       <FileEdit className="h-4 w-4 mr-1" />
                       Хүсэлт илгээх
-                </Button>
+                    </Button>
                   </div>
               </div>
             </Card>

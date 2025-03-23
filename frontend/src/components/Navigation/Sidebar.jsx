@@ -24,13 +24,7 @@ import {
   Menu,
   Briefcase,
   ChevronLeft,
-  ChevronRight,
-  Bell,
-  Brain,
-  Bot,
-  Sparkles,
-  Search,
-  LineChart
+  ChevronRight
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -40,12 +34,10 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({
     reports: true,
-    evaluations: true,
-    internships: true
   });
 
   const toggleMenu = (menuKey) => {
-    if (collapsed) return;
+    if (collapsed) return; // Эвхэгдсэн үед цэсийг нээх боломжгүй
     setExpandedMenus(prev => ({
       ...prev,
       [menuKey]: !prev[menuKey]
@@ -61,28 +53,10 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
           path: '/student',
           exact: true
         },
-        {
-          name: 'Дадлага',
-          icon: Briefcase,
-          key: 'internships',
-          isExpandable: true,
-          children: [
-            { name: 'Дадлагын зар', icon: ListChecks, path: '/student/internship-listings' },
-            { name: 'Дадлага бүртгүүлэх', icon: PlusCircle, path: '/student/apply-internship' },
-            { name: 'Өргөдлүүд', icon: ClipboardList, path: '/student/applications' }
-          ]
-        },
+        { name: 'Дадлагын зар, мэдээлэл', icon: Briefcase, path: '/student/internship-listings' },
         { 
           name: 'Тайлан', 
-          icon: FileText,
-          key: 'reports',
-          isExpandable: true,
-          children: [
-            { name: 'Тайлан бичих', icon: FileEdit, path: '/student/reports/submit' },
-            { name: 'Миний тайлангууд', icon: ClipboardList, path: '/student/reports/my' },
-            { name: 'Тайлангийн загвар', icon: FileText, path: '/student/reports/templates' }
-          ]
-        },
+          icon: FileText, path: '/student/reports/templates' },
         { 
           name: 'Үнэлгээнүүд', 
           icon: CheckSquare,
@@ -95,118 +69,35 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
         },
         { name: 'Даалгаврууд', icon: ClipboardList, path: '/student/tasks' },
         { name: 'Хуваарь', icon: Calendar, path: '/student/schedule' },
-        {
-          name: 'AI Туслах',
-          icon: Brain,
-          key: 'ai',
-          isExpandable: true,
-          children: [
-            { name: 'Тайлан туслах', icon: Bot, path: '/student/ai/report-assistant' },
-            { name: 'Даалгавар зөвлөгч', icon: Sparkles, path: '/student/ai/task-advisor' },
-            { name: 'Чат туслах', icon: MessageSquare, path: '/student/ai/chat' }
-          ]
-        }
+        { name: 'Өргөдлүүд', icon: ClipboardList, path: '/student/applications' },
+        { name: 'Дадлага бүртгүүлэх', icon: PlusCircle, path: '/student/apply-internship' }
       ],
       mentor: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/mentor' },
         { name: 'Оюутнууд', icon: Users, path: '/mentor/students' },
-        {
-          name: 'Тайлангууд',
-          icon: FileText,
-          key: 'reports',
-          isExpandable: true,
-          children: [
-            { name: 'Ирсэн тайлангууд', icon: ClipboardList, path: '/mentor/reports/submitted' },
-            { name: 'Тайлангийн загвар', icon: FileText, path: '/mentor/reports/templates' }
-          ]
-        },
-        { name: 'Үнэлгээнүүд', icon: CheckSquare, path: '/mentor/evaluations' },
+        { name: 'Тайлангууд', icon: FileText, path: '/mentor/reports/review' },
+        { name: 'Үнэлгээнүүд', icon: ClipboardList, path: '/mentor/evaluations' },
         { name: 'Статистик', icon: BarChart, path: '/mentor/analytics' },
-        { name: 'Мессеж', icon: MessageSquare, path: '/mentor/chat' },
-        { name: 'Хуваарь', icon: Calendar, path: '/mentor/schedule' },
-        {
-          name: 'AI Туслах',
-          icon: Brain,
-          key: 'ai',
-          isExpandable: true,
-          children: [
-            { name: 'Тайлан шинжилгээ', icon: Search, path: '/mentor/ai/report-analysis' },
-            { name: 'Үнэлгээ зөвлөмж', icon: Sparkles, path: '/mentor/ai/evaluation-advisor' },
-            { name: 'Чат туслах', icon: MessageSquare, path: '/mentor/ai/chat' }
-          ]
-        }
+        { name: 'Мессежүүд', icon: MessageSquare, path: '/mentor/messages' }
       ],
       teacher: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/teacher' },
         { name: 'Оюутнууд', icon: Users, path: '/teacher/students' },
-        {
-          name: 'Тайлангууд',
-          icon: FileText,
-          key: 'reports',
-          isExpandable: true,
-          children: [
-            { name: 'Хянах тайлангууд', icon: ClipboardList, path: '/teacher/reports/review' },
-            { name: 'Тайлангийн загвар', icon: FileText, path: '/teacher/reports/templates' }
-          ]
-        },
-        { name: 'Үнэлгээнүүд', icon: CheckSquare, path: '/teacher/evaluations' },
-        { name: 'Статистик', icon: BarChart, path: '/teacher/analytics' },
-        { name: 'Хуваарь', icon: Calendar, path: '/teacher/schedule' },
-        {
-          name: 'AI Туслах',
-          icon: Brain,
-          key: 'ai',
-          isExpandable: true,
-          children: [
-            { name: 'Оюутан шинжилгээ', icon: Search, path: '/teacher/ai/student-analysis' },
-            { name: 'Явц таамаглал', icon: LineChart, path: '/teacher/ai/progress-prediction' },
-            { name: 'Чат туслах', icon: MessageSquare, path: '/teacher/ai/chat' }
-          ]
-        }
+        { name: 'Тайлангууд', icon: FileText, path: '/teacher/reports/review' },
+        { name: 'Үнэлгээнүүд', icon: ClipboardList, path: '/teacher/evaluations' },
+        { name: 'Статистик', icon: BarChart, path: '/teacher/analytics' }
       ],
       admin: [
         { name: 'Нүүр хуудас', icon: LayoutDashboard, path: '/admin' },
         { name: 'Хэрэглэгчид', icon: Users, path: '/admin/users' },
-        {
-          name: 'Дадлага',
-          icon: Briefcase,
-          key: 'internships',
-          isExpandable: true,
-          children: [
-            { name: 'Бүх дадлага', icon: ListChecks, path: '/admin/internships' },
-            { name: 'Дадлагын зар', icon: PlusCircle, path: '/admin/internship-listings' },
-            { name: 'Өргөдлүүд', icon: ClipboardList, path: '/admin/applications' }
-          ]
-        },
-        {
-          name: 'Тайлангууд',
-          icon: FileText,
-          key: 'reports',
-          isExpandable: true,
-          children: [
-            { name: 'Бүх тайлан', icon: ClipboardList, path: '/admin/reports' },
-            { name: 'Тайлангийн загвар', icon: FileText, path: '/admin/reports/templates' }
-          ]
-        },
+        { name: 'Тайлангууд', icon: FileText, path: '/admin/reports/review' },
         { name: 'Статистик', icon: BarChart, path: '/admin/analytics' },
-        { name: 'Мэдэгдэл', icon: Bell, path: '/admin/notifications' },
-        { name: 'Тохиргоо', icon: Settings, path: '/admin/settings' },
-        {
-          name: 'AI Удирдлага',
-          icon: Brain,
-          key: 'ai',
-          isExpandable: true,
-          children: [
-            { name: 'AI Тохиргоо', icon: Settings, path: '/admin/ai/settings' },
-            { name: 'Системийн шинжилгээ', icon: Search, path: '/admin/ai/system-analysis' },
-            { name: 'Чат лог', icon: MessageSquare, path: '/admin/ai/chat-logs' }
-          ]
-        }
+        { name: 'Тохиргоо', icon: Settings, path: '/admin/settings' }
       ]
     };
 
     // User type-ийг аюулгүй авах
-    const userType = user?.role || user?.user_type || 'student';
+    const userType = user?.user_type || 'student';
     
     // roleSpecificItems[userType] массив байгаа эсэхийг шалгаад, байхгүй бол хоосон массив буцаах
     return Array.isArray(roleSpecificItems[userType]) 
