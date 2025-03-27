@@ -137,6 +137,7 @@ GRAPHQL_JWT = {
     'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=30),
 }
 
+# Logging config
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -147,12 +148,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -161,12 +156,23 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
     },
-} 
+}
+
+# Add file handler if log directory exists
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if os.path.exists(LOGS_DIR):
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': os.path.join(LOGS_DIR, 'debug.log'),
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['']['handlers'].append('file')
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -224,9 +230,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'staticfiles'),
-]
+
+# Only include STATICFILES_DIRS if the directory exists
+STATICFILES_DIRS = []
+STATICFILES_DIR = os.path.join(BASE_DIR, 'staticfiles')
+if os.path.exists(STATICFILES_DIR):
+    STATICFILES_DIRS = [STATICFILES_DIR]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

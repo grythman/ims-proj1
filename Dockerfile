@@ -22,6 +22,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
+# Create logs directory
+RUN mkdir -p /app/backend/logs
+
 # Set up Django
 RUN python backend/manage.py collectstatic --noinput
 
