@@ -43,6 +43,7 @@ import MentorEvaluation from './pages/student/evaluations/MentorEvaluation'
 import TeacherEvaluation from './pages/student/evaluations/TeacherEvaluation'
 import InternshipListings from './pages/student/InternshipListings'
 import InternshipDetails from './pages/student/InternshipDetails'
+import SchedulePage from './pages/student/schedule/SchedulePage'
 
 // Dashboards
 import AdminDashboard from './pages/dashboard/AdminDashboard'
@@ -147,6 +148,7 @@ const App = () => {
                   <Route path="internship-details/:id" element={<InternshipDetails />} />
                   <Route path="evaluations/mentor" element={<MentorEvaluation />} />
                   <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
+                  <Route path="schedule" element={<SchedulePage />} />
                 </Route>
 
                 {/* Mentor Routes */}
