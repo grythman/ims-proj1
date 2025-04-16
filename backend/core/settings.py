@@ -45,25 +45,26 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'django.contrib.gis',  # Commenting out GeoDjango since GDAL is not installed
+    
+    # Third-party apps
     'rest_framework',
-    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'corsheaders',
+    'drf_yasg',
     'django_filters',
     'channels',
+    
+    # Project apps
     'apps.users.apps.UsersConfig',
-    'apps.companies.apps.CompaniesConfig',
     'apps.internships.apps.InternshipsConfig',
-    'apps.notifications.apps.NotificationsConfig',
-    'apps.dashboard.apps.DashboardConfig',
     'apps.reports.apps.ReportsConfig',
     'apps.evaluations.apps.EvaluationsConfig',
-    'rest_framework.authtoken',
+    'apps.companies.apps.CompaniesConfig',
+    'apps.notifications.apps.NotificationsConfig',
+    'apps.dashboard.apps.DashboardConfig',
     'apps.analytics',
     'apps.chat',
-    'drf_spectacular',
-    'graphene_django',
-    'django_celery_results',
-    'django_celery_beat',
 ]
 
 MIDDLEWARE = [

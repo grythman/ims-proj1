@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useRole = () => {
     const { user } = useAuth();
@@ -7,6 +7,7 @@ export const useRole = () => {
     const isTeacher = user?.user_type === 'teacher';
     const isMentor = user?.user_type === 'mentor';
     const isStudent = user?.user_type === 'student';
+    const isEmployer = user?.user_type === 'employer';
 
     const getTheme = () => {
         switch (user?.user_type) {
@@ -34,6 +35,12 @@ export const useRole = () => {
                     gradient: 'from-green-600 to-green-800',
                     accent: 'border-green-600'
                 };
+            case 'employer':
+                return {
+                    primary: 'orange',
+                    gradient: 'from-orange-600 to-orange-800',
+                    accent: 'border-orange-600'
+                };
             default:
                 return {
                     primary: 'gray',
@@ -48,6 +55,7 @@ export const useRole = () => {
         isTeacher,
         isMentor,
         isStudent,
+        isEmployer,
         getTheme,
         userType: user?.user_type
     };

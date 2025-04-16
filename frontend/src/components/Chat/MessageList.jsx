@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { FileText, Download } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MessageList = ({ messages, onLoadMore }) => {
   const { user } = useAuth();

@@ -4,8 +4,8 @@ import { Card } from '../../components/UI/Card';
 import { Button } from '../../components/UI/Button';
 import { Calendar, FileText, Upload, Check, XCircle, ChevronLeft } from 'lucide-react';
 import { Input, Select, Spin, Tabs, message } from 'antd';
-import { useAuth } from '../../context/AuthContext';
-import ReportForm from '../../components/Reports/ReportForm';
+import { useAuth } from '../../contexts/AuthContext';
+import ReportForm from '../../components/reports/ReportForm';
 import api from '../../services/api';
 
 const { TabPane } = Tabs;

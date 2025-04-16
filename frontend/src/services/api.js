@@ -366,23 +366,17 @@ api.interceptors.response.use(
 // Auth related API calls
 export const login = async (username, password) => {
     try {
-        console.log('Нэвтрэх хүсэлт:', { username, password: '****' });
+        console.log('Attempting login with:', { username });
         
-        // Use mock data in development
-        if (shouldUseMockData('/api/v1/token/', null, null)) {
-            console.log('Нэвтрэх хүсэлтэд мок дата ашиглаж байна');
+        if (useMockApi) {
+            console.log('Using mock login');
             const mockUser = mockUsers.find(user => 
                 user.username === username && user.password === password
             );
             
             if (mockUser) {
-                console.log('Мок нэвтрэлт амжилттай');
-                // Create mock token - in production this would be a JWT
                 const mockToken = `mock_token_${mockUser.username}_${Date.now()}`;
-                
-                // Prepare response with token and user info
                 return {
-                    status: 'success',
                     token: mockToken,
                     user: {
                         id: mockUser.id,
@@ -390,85 +384,44 @@ export const login = async (username, password) => {
                         first_name: mockUser.first_name,
                         last_name: mockUser.last_name,
                         email: mockUser.email,
-                        user_type: mockUser.user_type,
+                        user_type: mockUser.user_type
                     }
                 };
-            } else {
-                console.error('Мок нэвтрэлт амжилтгүй: буруу мэдээлэл');
-                throw new Error('Нэвтрэх нэр эсвэл нууц үг буруу байна');
             }
+            throw new Error('Invalid credentials');
         }
-        
-        // Using real API
-        console.log('Бодит API руу хандаж байна');
-        const response = await api.post('/api/v1/token', {
+
+        const response = await api.post('/api/v1/token/', {
             username,
             password
         });
-        
-        console.log('API хариу:', response.status);
-        
-        // Store token for subsequent requests
-        if (response.data.access) {
-            // Set default auth header for future requests
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-            
-            // Get user info
-            const userResponse = await api.get('/api/v1/users/me/');
-            
+
+        if (response.data && response.data.token) {
             return {
-                status: 'success',
-                token: response.data.access,
-                user: userResponse.data
+                token: response.data.token,
+                user: response.data.user
             };
         }
-        
-        return response.data;
+        throw new Error('Invalid response format');
     } catch (error) {
-        console.error('Нэвтрэх API алдаа:', error);
-        
-        // Log detailed HTTP response for debugging
-        if (error.response) {
-            console.error('Алдааны статус:', error.response.status);
-            console.error('Алдааны дэлгэрэнгүй:', error.response.data);
-            console.error('Алдааны header:', error.response.headers);
-        }
-        
+        console.error('Login error:', error);
         throw error;
     }
 };
 
 export const getMe = async () => {
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            throw new Error('No authentication token found');
-        }
-
-        // Use mock data in development when API is not available
         if (useMockApi) {
-            console.log('Using mock user data');
-            const userStorage = localStorage.getItem('user');
-            if (userStorage) {
-                const user = JSON.parse(userStorage);
-                
-                // Simulate network delay
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                return user;
-            }
-            throw new Error('No user found in storage');
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) throw new Error('User not found');
+            return user;
         }
-
-        // Set authorization header
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        // Request user data
         const response = await api.get('/api/v1/users/me/');
         return response.data;
     } catch (error) {
-        console.error('GetMe API error:', error.response?.data || error.message);
-        throw error;
+        console.error('Error fetching user data:', error);
+        throw new Error('Хэрэглэгчийн мэдээлэл авахад алдаа гарлаа');
     }
 };
 
@@ -613,5 +566,45 @@ export const getBookmarkedInternships = async () => {
     throw error;
   }
 };
+
+// Reports API
+export const fetchReports = async () => {
+  try {
+    if (useMockApi) {
+      return mockReportsData;
+    }
+    
+    const response = await api.get('/api/v1/reports/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    throw new Error('Тайлан авахад алдаа гарлаа');
+  }
+};
+
+// Mock data for reports
+const mockReportsData = [
+  {
+    id: 1,
+    title: 'Долоо хоногийн тайлан - 1',
+    content: 'Энэ долоо хоногт хийсэн ажлын тайлан.',
+    created_at: '2023-11-15',
+    type: 'weekly'
+  },
+  {
+    id: 2,
+    title: 'Сарын тайлан - 10 сар',
+    content: 'Аравдугаар сарын тайлан.',
+    created_at: '2023-10-31',
+    type: 'monthly'
+  },
+  {
+    id: 3,
+    title: 'Эцсийн тайлан',
+    content: 'Дадлагын эцсийн тайлан.',
+    created_at: '2023-12-01',
+    type: 'final'
+  }
+];
 
 export default api;

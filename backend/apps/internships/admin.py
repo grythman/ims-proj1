@@ -7,15 +7,15 @@ from .models import (
 
 @admin.register(Internship)
 class InternshipAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'organization', 'mentor', 'status', 'start_date', 'end_date')
-    list_filter = ('status', 'organization')
-    search_fields = ('student__username', 'mentor__username', 'organization__name')
+    list_display = ('id', 'student', 'employer', 'mentor', 'status', 'start_date', 'end_date')
+    list_filter = ('status',)
+    search_fields = ('student__username', 'mentor__username', 'employer__username')
     date_hierarchy = 'start_date'
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'internship', 'assigned_by', 'status', 'due_date')
-    list_filter = ('status', 'priority')
+    list_filter = ('status',)
     search_fields = ('title', 'description')
 
 @admin.register(Message)
@@ -44,9 +44,9 @@ class EvaluationAdmin(admin.ModelAdmin):
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ('id', 'internship', 'title', 'submitted_at', 'status')
-    list_filter = ('status', 'submitted_at')
-    search_fields = ('internship__student__username', 'title', 'content')
+    list_display = ('id', 'internship', 'submitted_at')
+    list_filter = ('submitted_at',)
+    search_fields = ('internship__student__username', 'content')
 
 @admin.register(InternshipApplication)
 class InternshipApplicationAdmin(admin.ModelAdmin):

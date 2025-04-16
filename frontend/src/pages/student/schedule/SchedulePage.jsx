@@ -7,7 +7,7 @@ import PageHeader from '../../../components/UI/PageHeader';
 import { Alert } from 'antd';
 import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users, BookOpen, CheckCircle, XCircle, Info } from 'lucide-react';
 import dayjs from 'dayjs';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../services/api';
 
 const { TabPane } = Tabs;

@@ -13,7 +13,7 @@ class IsUserManagerOrSelf(permissions.BasePermission):
         # Allow user managers to perform any action
         return request.user.is_authenticated and (
             request.user.has_perm('users.can_manage_users') or
-            request.user.user_type in ['admin', 'teacher']
+            request.user.user_type in ['admin', 'teacher', 'employer']
         )
 
     def has_object_permission(self, request, view, obj):
@@ -23,7 +23,7 @@ class IsUserManagerOrSelf(permissions.BasePermission):
             
         # Allow user managers to manage any user
         return request.user.has_perm('users.can_manage_users') or \
-               request.user.user_type in ['admin', 'teacher']
+               request.user.user_type in ['admin', 'teacher', 'employer']
 
 class IsAdminUser(permissions.BasePermission):
     """
@@ -45,12 +45,30 @@ class IsAdminUser(permissions.BasePermission):
 
 class CanManageUsers(permissions.BasePermission):
     """
-    Permission to allow only admin and teachers to manage users.
+    Permission to allow only admin, teachers and employers to manage users.
     """
     def has_permission(self, request, view):
         return request.user.is_authenticated and (
-            request.user.user_type in ['admin', 'teacher'] or
+            request.user.user_type in ['admin', 'teacher', 'employer'] or
             request.user.has_perm('users.can_manage_users')
+        )
+
+class IsEmployer(permissions.BasePermission):
+    """
+    Permission to only allow employer users to access the view.
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.user_type == 'employer'
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.user_type == 'employer'
         )
 
 class IsOwnerOrReadOnly(permissions.BasePermission):

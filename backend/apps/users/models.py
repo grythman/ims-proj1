@@ -7,12 +7,14 @@ class User(AbstractUser):
     USER_TYPE_MENTOR = 'mentor'
     USER_TYPE_TEACHER = 'teacher'
     USER_TYPE_ADMIN = 'admin'
+    USER_TYPE_EMPLOYER = 'employer'
 
     USER_TYPE_CHOICES = [
         (USER_TYPE_STUDENT, 'Student'),
         (USER_TYPE_MENTOR, 'Mentor'),
         (USER_TYPE_TEACHER, 'Teacher'),
         (USER_TYPE_ADMIN, 'Admin'),
+        (USER_TYPE_EMPLOYER, 'Employer'),
     ]
 
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default=USER_TYPE_STUDENT)
@@ -23,13 +25,22 @@ class User(AbstractUser):
     # Student specific fields
     student_id = models.CharField(max_length=20, blank=True, null=True)
     major = models.CharField(max_length=100, blank=True, null=True)
+    year_of_study = models.IntegerField(blank=True, null=True)
 
     # Mentor specific fields
     company = models.CharField(max_length=100, blank=True, null=True)
     position = models.CharField(max_length=100, blank=True, null=True)
+    expertise = models.CharField(max_length=200, blank=True, null=True)
 
     # Teacher specific fields
     department_name = models.CharField(max_length=100, blank=True, null=True)
+    faculty_id = models.CharField(max_length=20, blank=True, null=True)
+    subject_area = models.CharField(max_length=100, blank=True, null=True)
+
+    # Employer specific fields
+    organization_name = models.CharField(max_length=100, blank=True, null=True)
+    organization_type = models.CharField(max_length=50, blank=True, null=True)
+    industry = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.username

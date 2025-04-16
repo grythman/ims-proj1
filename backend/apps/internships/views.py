@@ -46,6 +46,7 @@ class InternshipViewSet(viewsets.ModelViewSet):
     filterset_fields = ['status', 'organization', 'department']
     search_fields = ['title', 'description', 'student__username', 'mentor__username']
     ordering_fields = ['start_date', 'created_at', 'hours_completed']
+    serializer_class = InternshipSerializer
 
     def get_queryset(self):
         queryset = Internship.objects.select_related(
@@ -63,6 +64,9 @@ class InternshipViewSet(viewsets.ModelViewSet):
         elif user.user_type == 'mentor':
             return queryset.filter(mentor=user)
         return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -629,23 +633,6 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             evaluator=self.request.user,
             evaluator_type=self.request.user.user_type
         )
-
-class InternshipViewSet(viewsets.ModelViewSet):
-    serializer_class = InternshipSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.user_type == 'student':
-            return Internship.objects.filter(student=user)
-        elif user.user_type == 'teacher':
-            return Internship.objects.filter(teacher=user)
-        elif user.user_type == 'mentor':
-            return Internship.objects.filter(mentor=user)
-        return Internship.objects.none()
-
-    def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
 
 class StudentDashboardView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStudent]

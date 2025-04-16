@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import RoleRoute from './components/auth/RoleRoute'
 import { ConfigProvider, App as AntApp, message } from 'antd'
 import mnMN from 'antd/lib/locale/mn_MN'
@@ -44,6 +44,7 @@ import TeacherEvaluation from './pages/student/evaluations/TeacherEvaluation'
 import InternshipListings from './pages/student/InternshipListings'
 import InternshipDetails from './pages/student/InternshipDetails'
 import SchedulePage from './pages/student/schedule/SchedulePage'
+import ReportsPage from './pages/ReportsPage'
 
 // Dashboards
 import AdminDashboard from './pages/dashboard/AdminDashboard'
@@ -234,6 +235,7 @@ const App = () => {
                     </RoleRoute>
                   }
                 />
+                <Route path="/reports" element={<ReportsPage />} />
               </Route>
 
               {/* Default Route */}
@@ -263,7 +265,8 @@ const DefaultRedirect = () => {
     student: '/student',
     mentor: '/mentor',
     teacher: '/teacher',
-    admin: '/admin'
+    admin: '/admin',
+    employer: '/employer'
   }
 
   // Check for both user.role and user.user_type

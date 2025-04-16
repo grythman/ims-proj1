@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Search, Filter } from 'lucide-react';
 import { Card } from '../../components/UI/Card';
-import ReportReview from '../../components/Reports/ReportReview';
+import ReportReview from '../../components/reports/ReportReview';
 import api from '../../services/api';
 
 const ReviewReportsPage = () => {

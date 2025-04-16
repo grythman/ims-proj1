@@ -4,8 +4,8 @@ import { Button } from '../../components/UI/Button';
 import { FileText, Plus, FileEdit, Copy, Archive, Download } from 'lucide-react';
 import { Tabs, Empty, Spin, Select, message } from 'antd';
 import api from '../../services/api';
-import ReportTemplate from '../../components/Reports/ReportTemplate';
-import ReportTemplateList from '../../components/Reports/ReportTemplateList';
+import ReportTemplate from '../../components/reports/ReportTemplate';
+import ReportTemplateList from '../../components/reports/ReportTemplateList';
 import { useNavigate } from 'react-router-dom';
 
 const { TabPane } = Tabs;

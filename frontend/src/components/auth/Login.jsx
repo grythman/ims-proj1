@@ -25,10 +25,13 @@ const Login = () => {
     
     try {
       const response = await login(credentials);
-      const token = response.data.access_token || response.data.token;
-      setToken(token);
-      toast.success('Login successful!');
-      navigate('/dashboard');
+      if (response.status === 'success' && response.token) {
+        setToken(response.token);
+        toast.success('Login successful!');
+        navigate('/dashboard');
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error.response?.data?.error || 

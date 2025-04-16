@@ -18,122 +18,89 @@ class UserSerializer(serializers.ModelSerializer):
 class EvaluationCriteriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = EvaluationCriteria
-        fields = [
-            'id', 'name', 'description', 'weight',
-            'evaluator_type', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-
-    def validate_weight(self, value):
-        if value < 0 or value > 100:
-            raise serializers.ValidationError(
-                "Weight must be between 0 and 100"
-            )
-        return value
+        fields = ['id', 'name', 'category', 'description', 'max_score', 'weight']
 
 class EvaluationScoreSerializer(serializers.ModelSerializer):
-    criteria_name = serializers.CharField(source='criteria.name', read_only=True)
-    criteria_weight = serializers.IntegerField(source='criteria.weight', read_only=True)
+    criteria = EvaluationCriteriaSerializer(read_only=True)
+    criteria_id = serializers.PrimaryKeyRelatedField(
+        queryset=EvaluationCriteria.objects.all(),
+        source='criteria',
+        write_only=True
+    )
 
     class Meta:
         model = EvaluationScore
-        fields = [
-            'id', 'evaluation', 'criteria', 'criteria_name',
-            'criteria_weight', 'score', 'comments',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'criteria', 'criteria_id', 'score', 'comments']
 
     def validate_score(self, value):
-        if value < 0 or value > 100:
+        criteria = self.initial_data.get('criteria')
+        if criteria and value > criteria.max_score:
             raise serializers.ValidationError(
-                "Score must be between 0 and 100"
+                f"Score cannot exceed {criteria.max_score}"
             )
         return value
 
 class EvaluationAttachmentSerializer(serializers.ModelSerializer):
-    file_url = serializers.SerializerMethodField()
-    
     class Meta:
         model = EvaluationAttachment
-        fields = [
-            'id', 'evaluation', 'file', 'file_url',
-            'file_name', 'file_type', 'file_size',
-            'created_at'
-        ]
-        read_only_fields = ['file_url', 'created_at']
-
-    def get_file_url(self, obj):
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
-        return None
+        fields = ['id', 'file', 'description', 'uploaded_at']
+        read_only_fields = ['uploaded_at']
 
 class EvaluationSerializer(serializers.ModelSerializer):
     evaluator = UserSerializer(read_only=True)
-    internship = InternshipSerializer(read_only=True)
-    scores = EvaluationScoreSerializer(many=True, read_only=True)
+    evaluated_student = UserSerializer(read_only=True)
+    scores = EvaluationScoreSerializer(many=True, required=False)
     attachments = EvaluationAttachmentSerializer(many=True, read_only=True)
     total_score = serializers.SerializerMethodField()
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    evaluator_type_display = serializers.CharField(
-        source='get_evaluator_type_display',
-        read_only=True
-    )
 
     class Meta:
         model = Evaluation
         fields = [
-            'id', 'internship', 'evaluator', 'evaluator_type',
-            'evaluator_type_display', 'status', 'status_display',
-            'submission_date', 'comments', 'scores',
-            'attachments', 'total_score', 'created_at',
-            'updated_at'
+            'id', 'internship', 'evaluator', 'evaluated_student',
+            'date', 'comments', 'is_final', 'scores', 'attachments',
+            'total_score'
         ]
-        read_only_fields = [
-            'evaluator', 'evaluator_type', 'submission_date',
-            'created_at', 'updated_at'
-        ]
+        read_only_fields = ['evaluator', 'date']
 
     def get_total_score(self, obj):
-        return obj.calculate_total_score()
-
-    def validate(self, data):
-        if self.instance and self.instance.status != 'draft':
-            raise serializers.ValidationError(
-                "Can only update draft evaluations"
-            )
-        return data
-
-class EvaluationCreateSerializer(serializers.ModelSerializer):
-    internship_id = serializers.IntegerField(write_only=True)
-    scores = serializers.ListField(
-        child=serializers.DictField(),
-        write_only=True,
-        required=False
-    )
-
-    class Meta:
-        model = Evaluation
-        fields = [
-            'internship_id', 'comments', 'scores'
-        ]
+        scores = obj.scores.all()
+        if not scores:
+            return 0
+        
+        total_weight = sum(score.criteria.weight for score in scores)
+        if total_weight == 0:
+            return 0
+            
+        weighted_sum = sum(
+            score.score * score.criteria.weight
+            for score in scores
+        )
+        return round(weighted_sum / total_weight, 1)
 
     def create(self, validated_data):
         scores_data = validated_data.pop('scores', [])
-        internship_id = validated_data.pop('internship_id')
-
-        # Create evaluation
-        evaluation = Evaluation.objects.create(
-            internship_id=internship_id,
-            **validated_data
-        )
-
-        # Create scores
+        evaluation = Evaluation.objects.create(**validated_data)
+        
         for score_data in scores_data:
-            EvaluationScore.objects.create(
-                evaluation=evaluation,
-                **score_data
-            )
+            EvaluationScore.objects.create(evaluation=evaluation, **score_data)
+            
+        return evaluation
 
-        return evaluation 
+    def update(self, instance, validated_data):
+        scores_data = validated_data.pop('scores', [])
+        
+        # Update evaluation fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update or create scores
+        if scores_data:
+            # Delete existing scores
+            instance.scores.all().delete()
+            
+            # Create new scores
+            for score_data in scores_data:
+                EvaluationScore.objects.create(evaluation=instance, **score_data)
+                
+        return instance 

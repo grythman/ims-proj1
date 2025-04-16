@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/v1/token/', TokenObtainPairView.as_view(), name='v1_token_obtain_pair'),
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='v1_token_refresh'),
     path('api/v1/token/verify/', TokenVerifyView.as_view(), name='v1_token_verify'),
+    path('api/v1/users/', include('apps.users.urls', namespace='users')),
     
     # API v2 URLs
     path('api/v2/', include((v2_router.urls, 'v2'))),

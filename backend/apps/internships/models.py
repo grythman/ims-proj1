@@ -3,43 +3,60 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from apps.companies.models import Organization
+# Comment out GeoDjango import
+# from django.contrib.gis.db import models as gis_models
+from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class Internship(models.Model):
-    STATUS_PENDING = 0
-    STATUS_ACTIVE = 1
-    STATUS_COMPLETED = 2
-    STATUS_CANCELLED = 3
-
     STATUS_CHOICES = [
-        (STATUS_PENDING, 'Pending'),
-        (STATUS_ACTIVE, 'Active'),
-        (STATUS_COMPLETED, 'Completed'),
-        (STATUS_CANCELLED, 'Cancelled'),
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
     ]
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='internships')
     mentor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='mentored_internships')
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='internships')
-    title = models.CharField(max_length=255)
+    teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='supervised_internships')
+    employer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='offered_internships')
+
+    title = models.CharField(max_length=200)
     description = models.TextField()
     start_date = models.DateField()
     end_date = models.DateField()
-    status = models.IntegerField(choices=STATUS_CHOICES, default=STATUS_PENDING)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # GIS fields modified to use regular fields
+    # location = gis_models.PointField(geography=True, null=True, blank=True)
+    location_lat = models.FloatField(null=True, blank=True)
+    location_lng = models.FloatField(null=True, blank=True)
+    address = models.CharField(max_length=200, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+
+    # Schedule fields
+    work_hours = models.JSONField(default=dict)  # Store daily schedule
+    total_hours = models.IntegerField(default=0)
+    
+    # Evaluation fields
+    technical_skill_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    communication_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    report_quality_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = _('internship')
+        verbose_name_plural = _('internships')
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['student', 'status']),
-            models.Index(fields=['mentor']),
-            models.Index(fields=['organization']),
-        ]
 
     def __str__(self):
-        return f"{self.student.get_full_name()}'s internship at {self.organization.name}"
+        return f"{self.student.username}'s internship at {self.employer.organization_name if self.employer else 'Unknown'}"
 
     def clean(self):
         if self.start_date and self.end_date:
@@ -48,47 +65,33 @@ class Internship(models.Model):
 
     @property
     def is_active(self):
-        return self.status == self.STATUS_ACTIVE
+        return self.status == 'approved'
 
 class Task(models.Model):
-    STATUS_CHOICES = (
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-    )
+        ('cancelled', 'Cancelled')
+    ]
 
-    PRIORITY_CHOICES = (
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-    )
-
-    internship = models.ForeignKey(
-        Internship,
-        on_delete=models.CASCADE,
-        related_name='tasks'
-    )
-    title = models.CharField(max_length=255)
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=200)
     description = models.TextField()
-    assigned_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='assigned_tasks'
-    )
+    assigned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_tasks')
+    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     due_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    hours_spent = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['due_date', '-priority']
+        verbose_name = _('task')
+        verbose_name_plural = _('tasks')
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.title} - {self.internship.student.username}"
+        return f"{self.title} - {self.assigned_to.username}"
 
 class Evaluation(models.Model):
     GRADE_CHOICES = [
@@ -131,57 +134,28 @@ class Evaluation(models.Model):
         super().save(*args, **kwargs)
 
 class Report(models.Model):
-    REPORT_STATUS = (
-        ('pending', 'Pending'),
-        ('under_review', 'Under Review'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected')
-    )
-
-    REPORT_TYPES = (
+    REPORT_TYPES = [
+        ('daily', 'Daily Report'),
         ('weekly', 'Weekly Report'),
-        ('monthly', 'Monthly Report'),
-        ('final', 'Final Report'),
-    )
+        ('final', 'Final Report')
+    ]
 
-    student = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='submitted_reports'
-    )
-    internship = models.ForeignKey(
-        'Internship',
-        on_delete=models.CASCADE,
-        related_name='reports'
-    )
-    title = models.CharField(max_length=200)
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, related_name='reports')
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
     content = models.TextField()
-    report_type = models.CharField(
-        max_length=20,
-        choices=REPORT_TYPES,
-        default='weekly'
-    )
-    feedback = models.TextField(blank=True, null=True)
-    status = models.CharField(
-        max_length=20,
-        choices=REPORT_STATUS,
-        default='pending'
-    )
+    attachments = models.FileField(upload_to='reports/', null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    evaluated_at = models.DateTimeField(null=True, blank=True)
-    evaluated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='evaluated_reports'
-    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reviewed_reports')
+    feedback = models.TextField(null=True, blank=True)
 
     class Meta:
+        verbose_name = _('report')
+        verbose_name_plural = _('reports')
         ordering = ['-submitted_at']
 
     def __str__(self):
-        return f"{self.get_report_type_display()} by {self.student.get_full_name()} - {self.submitted_at.date()}"
+        return f"{self.internship.student.username}'s {self.report_type} report"
 
 class PreliminaryReport(models.Model):
     STATUS_CHOICES = (

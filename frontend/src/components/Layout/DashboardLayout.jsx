@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Navbar from '../Navigation/Navbar';
 import Sidebar from '../Navigation/Sidebar';
 import { ChevronLeft, Menu } from 'lucide-react';

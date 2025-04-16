@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/UI/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/UI/Card';
 import { toast } from 'react-hot-toast';

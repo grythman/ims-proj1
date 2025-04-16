@@ -4,11 +4,6 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 module.exports = {
   webpack: {
-    alias: {
-      // node_modules/react-refresh-г src/node_modules/react-refresh руу чиглүүлэх
-      'react-refresh/runtime': path.resolve(__dirname, './src/node_modules/react-refresh/runtime'),
-      'react-refresh': path.resolve(__dirname, './src/node_modules/react-refresh')
-    },
     configure: (webpackConfig, { env, paths }) => {
       // ModuleScopePlugin-ийг бүр хасах (радикал арга)
       webpackConfig.resolve.plugins = webpackConfig.resolve.plugins.filter(
