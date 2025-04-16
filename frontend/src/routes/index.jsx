@@ -1,59 +1,111 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import StudentDashboardLayout from '../layouts/StudentDashboardLayout';
-import TeacherLayout from '../layouts/TeacherLayout';
-import StudentDashboard from '../pages/dashboard/StudentDashboard';
-import TeacherDashboard from '../pages/dashboard/TeacherDashboard';
-import Reports from '../pages/reports/Reports';
-import ReportDetails from '../pages/reports/ReportDetails';
-import SubmitReport from '../pages/reports/SubmitReport';
-import ReviewReportsPage from '../pages/reports/ReviewReportsPage';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import PrivateRoute from './PrivateRoute';
 import MainLayout from '../layouts/MainLayout';
-import WebhooksPage from '../pages/WebhooksPage';
-import ApplyInternship from '../pages/internships/ApplyInternship';
-import InternshipListings from '../pages/student/InternshipListings';
-import StudentTasks from '../pages/tasks/StudentTasks';
-import StudentSchedule from '../pages/student/Schedule';
-import StudentApplications from '../pages/applications/StudentApplications';
-import MentorEvaluation from '../pages/student/evaluations/MentorEvaluation';
-import TeacherEvaluation from '../pages/student/evaluations/TeacherEvaluation';
+import AuthLayout from '../layouts/AuthLayout';
+
+// Auth pages
+import LoginPage from '../pages/auth/LoginPage';
+import RegisterPage from '../pages/auth/RegisterPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
+
+// Protected pages
+import DashboardPage from '../pages/DashboardPage';
+import ProfilePage from '../pages/ProfilePage';
+import ReportsPage from '../pages/ReportsPage';
+import InternshipsPage from '../pages/InternshipsPage';
+import InternshipDetailsPage from '../pages/InternshipDetailsPage';
+import EvaluationsPage from '../pages/EvaluationsPage';
+import NotificationsPage from '../pages/NotificationsPage';
+import UnauthorizedPage from '../pages/UnauthorizedPage';
+import NotFoundPage from '../pages/NotFoundPage';
+
+// User type specific pages
+import MentorDashboardPage from '../pages/mentor/DashboardPage';
+import TeacherDashboardPage from '../pages/teacher/DashboardPage';
+import StudentDashboardPage from '../pages/student/DashboardPage';
 
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Auth routes - available to unauthenticated users */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Route>
+
+      {/* Protected routes - require authentication */}
       <Route element={<MainLayout />}>
-        {/* Student Routes */}
-        <Route path="/student/*" element={<StudentDashboardLayout />}>
-          <Route index element={<StudentDashboard />} />
-          <Route path="dashboard" element={<StudentDashboard />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="reports/:id" element={<ReportDetails />} />
-          <Route path="reports/submit" element={<SubmitReport />} />
-          <Route path="reports/review" element={<ReviewReportsPage />} />
-          <Route path="reports/templates" element={<div>Тайлангийн загварууд</div>} />
-          <Route path="internship-listings" element={<InternshipListings />} />
-          <Route path="internship-info" element={<div>Дадлагын дэлгэрэнгүй мэдээлэл</div>} />
-          <Route path="tasks" element={<StudentTasks />} />
-          <Route path="schedule" element={<StudentSchedule />} />
-          <Route path="applications" element={<StudentApplications />} />
-          <Route path="apply-internship" element={<ApplyInternship />} />
-          <Route path="evaluations/mentor" element={<MentorEvaluation />} />
-          <Route path="evaluations/teacher" element={<TeacherEvaluation />} />
-        </Route>
-
-        {/* Teacher Routes */}
-        <Route path="/teacher/*" element={<TeacherLayout />}>
-          <Route index element={<TeacherDashboard />} />
-          <Route path="students" element={<div>Students Page</div>} />
-          <Route path="evaluations" element={<div>Evaluations Page</div>} />
-          <Route path="reports" element={<div>Reports Page</div>} />
-          <Route path="analytics" element={<div>Analytics Page</div>} />
-          <Route path="calendar" element={<div>Calendar Page</div>} />
-          <Route path="settings" element={<div>Settings Page</div>} />
-        </Route>
-
-        {/* Admin Routes */}
-        <Route path="/webhooks" element={<WebhooksPage />} />
+        {/* Common routes for all users */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        <Route path="/dashboard" element={
+          <PrivateRoute>
+            <DashboardPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/profile" element={
+          <PrivateRoute>
+            <ProfilePage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/reports" element={
+          <PrivateRoute>
+            <ReportsPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/internships" element={
+          <PrivateRoute>
+            <InternshipsPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/internships/:id" element={
+          <PrivateRoute>
+            <InternshipDetailsPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/evaluations" element={
+          <PrivateRoute>
+            <EvaluationsPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/notifications" element={
+          <PrivateRoute>
+            <NotificationsPage />
+          </PrivateRoute>
+        } />
+        
+        {/* Role-specific routes */}
+        <Route path="/mentor/dashboard" element={
+          <PrivateRoute requiredRole="mentor">
+            <MentorDashboardPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/teacher/dashboard" element={
+          <PrivateRoute requiredRole="teacher">
+            <TeacherDashboardPage />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/student/dashboard" element={
+          <PrivateRoute requiredRole="student">
+            <StudentDashboardPage />
+          </PrivateRoute>
+        } />
+        
+        {/* Special pages */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );
