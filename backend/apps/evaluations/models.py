@@ -32,7 +32,7 @@ class EvaluationCriteria(models.Model):
 class Evaluation(models.Model):
     internship = models.ForeignKey('internships.Internship', on_delete=models.CASCADE, related_name='evaluations')
     evaluator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_evaluations')
-    evaluated_student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_evaluations')
+    evaluated_student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_internship_evaluations')
     date = models.DateField(auto_now_add=True)
     comments = models.TextField(blank=True)
     is_final = models.BooleanField(default=False)

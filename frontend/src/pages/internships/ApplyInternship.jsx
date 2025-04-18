@@ -4,6 +4,7 @@ import { ArrowLeft, Briefcase, Building, User, Calendar, FileText } from 'lucide
 import api from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
 import ErrorState from '../../components/UI/ErrorState';
+import { toast } from 'react-hot-toast';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -39,23 +40,14 @@ const ApplyInternship = () => {
 
   const fetchMentors = async () => {
     try {
-      const response = await api.get('/api/v2/mentors/');
-      setMentors(response.data.map(mentor => ({
+      const response = await api.get('/api/v1/users/mentors/');
+      setMentors(response.data.data?.map(mentor => ({
         value: mentor.id,
         label: `${mentor.first_name} ${mentor.last_name}`
-      })));
+      })) || []);
     } catch (error) {
       console.error('Error fetching mentors:', error);
-      message.warning('Менторуудын жагсаалт ачаалахад алдаа гарлаа. Түр зуурын өгөгдөл харуулж байна.');
-      
-      // Use fallback data
-      setMentors([
-        { value: 1, label: 'Батбаяр Дорж' },
-        { value: 2, label: 'Болормаа Ган' },
-        { value: 3, label: 'Түмэн Жаргал' }
-      ]);
-    } finally {
-      setLoading(false);
+      toast.error('Менторуудын жагсаалтыг ачаалж чадсангүй');
     }
   };
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Button } from '../UI/Button';
 import { Card, CardHeader, CardContent, CardTitle } from '../UI/Card';
-import { reportsApi } from '../../services/api';
+import api from '../../services/api';
 import Input from '../UI/Input';
 
 const ReportForm = ({ internship, onSuccess, onSubmitSuccess }) => {
@@ -17,26 +17,37 @@ const ReportForm = ({ internship, onSuccess, onSubmitSuccess }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
     }));
   };
 
-  const handleSectionChange = (sectionName, value) => {
-    setFormData(prevState => ({
-      ...prevState,
+  const handleSectionChange = (sectionTitle, value) => {
+    setFormData(prev => ({
+      ...prev,
       content: {
-        ...prevState.content,
-        [sectionName]: value
+        ...prev.content,
+        [sectionTitle]: value
       }
     }));
   };
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    setFormData(prevState => ({
-      ...prevState,
+    if (files.length > 5) {
+      toast.error('Maximum 5 files allowed');
+      return;
+    }
+
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > 25 * 1024 * 1024) { // 25MB limit
+      toast.error('Total file size must be less than 25MB');
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
       attachments: files
     }));
   };
@@ -47,25 +58,42 @@ const ReportForm = ({ internship, onSuccess, onSubmitSuccess }) => {
     setError(null);
 
     try {
-      // Validate form
+      // Validate required fields
       if (!formData.title.trim()) {
-        throw new Error('Тайлангийн гарчиг оруулна уу');
+        throw new Error('Title is required');
       }
 
-      if (Object.keys(formData.content).length === 0) {
-        throw new Error('Тайлангийн агуулга оруулна уу');
+      const template = getTemplate(formData.report_type);
+      const missingFields = template.sections
+        .filter(section => !formData.content[section.title])
+        .map(section => section.title);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in the following sections: ${missingFields.join(', ')}`);
       }
 
-      // Submit the report
-      const response = await reportsApi.submit({
-        title: formData.title,
-        report_type: formData.report_type,
-        content: formData.content,
-        internship: internship?.id,
-        attachments: formData.attachments
+      // Create FormData object
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('report_type', formData.report_type);
+      data.append('content', JSON.stringify(formData.content));
+      
+      if (internship && internship.id) {
+        data.append('internship', internship.id);
+      }
+
+      formData.attachments.forEach(file => {
+        data.append('attachments', file);
       });
 
-      toast.success('Тайлан амжилттай илгээгдлээ!');
+      // Submit report
+      const response = await api.post('/api/reports/submit/', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      toast.success('Report submitted successfully!');
       
       // Reset form after successful submission
       setFormData({
@@ -77,144 +105,189 @@ const ReportForm = ({ internship, onSuccess, onSubmitSuccess }) => {
       
       // Call success callbacks
       if (onSuccess) {
-        onSuccess(response);
+        onSuccess(response.data);
       }
       
       if (onSubmitSuccess) {
-        onSubmitSuccess(response);
+        onSubmitSuccess(response.data);
       }
     } catch (error) {
       console.error('Error submitting report:', error);
-      setError(error.message || 'Тайлан илгээхэд алдаа гарлаа. Дахин оролдоно уу.');
-      toast.error(error.message || 'Тайлан илгээхэд алдаа гарлаа');
+      toast.error(error.message || 'Failed to submit report');
+      setError('Тайлан илгээхэд алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Template options based on report type
   const getTemplate = (type) => {
-    const templates = {
-      weekly: {
-        title: 'Долоо хоногийн тайлан',
-        sections: [
-          { title: 'Хийсэн ажлууд', type: 'list' },
-          { title: 'Сурсан зүйлс', type: 'text' },
-          { title: 'Тулгарсан бэрхшээлүүд', type: 'text' },
-          { title: 'Дараагийн долоо хоногт хийх ажлууд', type: 'list' }
-        ]
-      },
-      monthly: {
-        title: 'Сарын тайлан',
-        sections: [
-          { title: 'Хийсэн ажлын товч тайлан', type: 'text' },
-          { title: 'Үндсэн үр дүнгүүд', type: 'list' },
-          { title: 'Сурсан ур чадварууд', type: 'list' },
-          { title: 'Хувийн хөгжил', type: 'text' },
-          { title: 'Санал хүсэлт', type: 'text' }
-        ]
-      },
-      final: {
-        title: 'Эцсийн тайлан',
-        sections: [
-          { title: 'Дадлагын товч тайлбар', type: 'text' },
-          { title: 'Сурсан ур чадварууд', type: 'list' },
-          { title: 'Хүрсэн үр дүнгүүд', type: 'list' },
-          { title: 'Хэрэгжүүлсэн төслүүд', type: 'text' },
-          { title: 'Тулгарсан бэрхшээлүүд ба шийдэл', type: 'text' },
-          { title: 'Хувийн хөгжил', type: 'text' },
-          { title: 'Дүгнэлт', type: 'text' }
-        ]
-      }
-    };
-    
-    return templates[type] || templates.weekly;
+    switch (type) {
+      case 'weekly':
+        return {
+          sections: [
+            {
+              title: 'Tasks Completed',
+              type: 'list'
+            },
+            {
+              title: 'Skills Learned',
+              type: 'text'
+            },
+            {
+              title: 'Challenges',
+              type: 'text'
+            },
+            {
+              title: 'Next Week Goals',
+              type: 'list'
+            }
+          ]
+        };
+      case 'monthly':
+        return {
+          sections: [
+            {
+              title: 'Major Achievements',
+              type: 'list'
+            },
+            {
+              title: 'Project Progress',
+              type: 'text'
+            },
+            {
+              title: 'Skills Development',
+              type: 'text'
+            },
+            {
+              title: 'Feedback & Improvements',
+              type: 'text'
+            },
+            {
+              title: 'Next Month Goals',
+              type: 'list'
+            }
+          ]
+        };
+      case 'final':
+        return {
+          sections: [
+            {
+              title: 'Internship Overview',
+              type: 'text'
+            },
+            {
+              title: 'Key Projects',
+              type: 'list'
+            },
+            {
+              title: 'Skills Acquired',
+              type: 'list'
+            },
+            {
+              title: 'Challenges & Solutions',
+              type: 'text'
+            },
+            {
+              title: 'Professional Growth',
+              type: 'text'
+            },
+            {
+              title: 'Future Plans',
+              type: 'text'
+            }
+          ]
+        };
+      default:
+        return { sections: [] };
+    }
   };
 
   return (
     <Card>
       <CardHeader bordered>
-        <CardTitle>Тайлан илгээх</CardTitle>
+        <CardTitle>Шинэ тайлан илгээх</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Тайлангийн төрөл
-            </label>
-            <select
-              name="report_type"
-              value={formData.report_type}
-              onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              required
-            >
-              <option value="weekly">Долоо хоногийн</option>
-              <option value="monthly">Сарын</option>
-              <option value="final">Эцсийн</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Тайлангийн гарчиг
-            </label>
-            <Input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              placeholder="Тайлангийн нэр"
-              className="w-full"
-            />
-          </div>
-
-          {/* Report sections based on template */}
+        <form onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {getTemplate(formData.report_type).sections.map((section, index) => (
-              <div key={index}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {section.title}
-                </label>
-                <textarea
-                  value={formData.content[section.title] || ''}
-                  onChange={(e) => handleSectionChange(section.title, e.target.value)}
-                  rows={section.type === 'list' ? 4 : 6}
-                  className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  placeholder={section.type === 'list' ? 'Жагсаалтыг мөр тус бүрт тусгайлан бичнэ үү' : 'Энд бичнэ үү...'}
-                />
-              </div>
-            ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн гарчиг
+              </label>
+              <Input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+                placeholder="Тайлангийн нэр"
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн төрөл
+              </label>
+              <select
+                name="report_type"
+                value={formData.report_type}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                required
+              >
+                <option value="weekly">7 хоног</option>
+                <option value="monthly">Сарын</option>
+                <option value="final">Эцсийн</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тайлангийн агуулга
+              </label>
+              <textarea
+                name="content"
+                value={formData.content}
+                onChange={(e) => handleSectionChange(e.target.name, e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                rows={6}
+                placeholder="Тайлангийн дэлгэрэнгүй тайлбар"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Хавсралт
+              </label>
+              <input
+                type="file"
+                name="attachments"
+                onChange={handleFileChange}
+                multiple
+                className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                PDF, DOCX, XLSX файлууд хавсаргах боломжтой.
+              </p>
+            </div>
+
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Хавсралт файлууд
-            </label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              multiple
-              className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Нийт хэмжээ 10MB-с хэтрэхгүй байх ёстой. Зөвшөөрөгдөх формат: .pdf, .doc, .docx, .jpg, .png
-            </p>
+          <div className="mt-6">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={loading}
+              fullWidth
+            >
+              {loading ? 'Илгээж байна...' : 'Тайлан илгээх'}
+            </Button>
           </div>
-
-          {error && (
-            <div className="text-red-500 text-sm">{error}</div>
-          )}
-
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={loading}
-            fullWidth
-          >
-            {loading ? 'Илгээж байна...' : 'Тайлан илгээх'}
-          </Button>
         </form>
       </CardContent>
     </Card>

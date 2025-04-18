@@ -11,8 +11,9 @@ router.register(r'', views.EvaluationViewSet, basename='evaluation')
 app_name = 'evaluations'
 
 urlpatterns = [
-    # Include router URLs
-    path('', include(router.urls)),
+    # Student specific endpoints
+    path('student/teacher/', views.StudentTeacherEvaluationView.as_view(), name='student-teacher-evaluation'),
+    path('student/<int:student_id>/', views.StudentEvaluationsView.as_view(), name='student-evaluations'),
     
     # Teacher specific endpoints
     path('teacher/mentor/all/', views.TeacherMentorEvaluationsView.as_view(), name='teacher-mentor-evaluations'),
@@ -21,10 +22,10 @@ urlpatterns = [
     # Mentor specific endpoints
     path('mentor/', views.MentorEvaluationsView.as_view(), name='mentor-evaluations'),
     
-    # Student specific endpoints
-    path('student/<int:student_id>/', views.StudentEvaluationsView.as_view(), name='student-evaluations'),
-    
     # Action endpoints
     path('<int:pk>/submit/', views.EvaluationViewSet.as_view({'post': 'submit'}), name='submit-evaluation'),
     path('<int:pk>/review/', views.EvaluationViewSet.as_view({'post': 'review'}), name='review-evaluation'),
+    
+    # Include router URLs
+    path('', include(router.urls)),
 ] 

@@ -16,119 +16,58 @@ const MentorEvaluation = () => {
     const fetchEvaluationData = async () => {
       try {
         setLoading(true);
-        // API-аас үнэлгээний мэдээлэл авах
         const response = await api.get('/api/v1/internships/student/evaluations/mentor/');
-        setEvaluationData(response.data);
+        console.log('API Response:', response.data); // Debug log
+        
+        if (!response.data || !Array.isArray(response.data.data)) {
+          setEvaluationData(null);
+          return;
+        }
+
+        // Transform API data
+        const evaluations = response.data.data;
+        const latestEvaluation = evaluations[0];
+        
+        const transformedData = {
+          mentor: latestEvaluation?.evaluator || {},
+          latestEvaluation: latestEvaluation ? {
+            date: latestEvaluation.created_at,
+            overallScore: latestEvaluation.overall_score || 0,
+            comment: latestEvaluation.comments,
+            weekNumber: latestEvaluation.week_number,
+            scores: latestEvaluation.scores?.reduce((acc, score) => {
+              acc[score.criteria.toLowerCase()] = score.score;
+              return acc;
+            }, {}) || {}
+          } : null,
+          evaluationHistory: evaluations.map(evaluation => ({
+            id: evaluation.id,
+            date: evaluation.created_at,
+            overallScore: evaluation.overall_score || 0,
+            comment: evaluation.comments,
+            weekNumber: evaluation.week_number,
+            scores: evaluation.scores?.reduce((acc, score) => {
+              acc[score.criteria.toLowerCase()] = score.score;
+              return acc;
+            }, {}) || {}
+          })),
+          skillRatings: latestEvaluation?.skill_ratings?.map(rating => ({
+            name: rating.skill,
+            rating: rating.score
+          })) || [],
+          assignedTasks: latestEvaluation?.tasks?.map(task => ({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            dueDate: task.due_date,
+            score: task.score
+          })) || []
+        };
+
+        setEvaluationData(transformedData);
       } catch (error) {
         console.error('Үнэлгээний мэдээлэл авахад алдаа гарлаа:', error);
-        setError('Менторын үнэлгээний мэдээлэл авахад алдаа гарлаа');
-        
-        // Туршилтын өгөгдөл
-        setEvaluationData({
-          mentor: {
-            name: 'Батбаяр Дорж',
-            position: 'Ахлах хөгжүүлэгч',
-            organization: 'Монгол Апп ХХК',
-            avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-          },
-          latestEvaluation: {
-            date: '2023-04-15',
-            overallScore: 4.2,
-            comment: 'Бат сүүлийн сард сайн ажиллаж байна. Техникийн ур чадвар сайжирч байгаа боловч харилцааны ур чадварыг хөгжүүлэх хэрэгтэй.',
-            scores: {
-              attendance: 4.5,
-              technical: 4.0,
-              teamwork: 3.8,
-              communication: 3.5,
-              problemSolving: 4.2,
-            }
-          },
-          evaluationHistory: [
-            {
-              id: 1,
-              date: '2023-04-15',
-              overallScore: 4.2,
-              comment: 'Сүүлийн сард сайн ажиллаж байна. Техникийн ур чадвар сайжирч байгаа боловч харилцааны ур чадварыг хөгжүүлэх хэрэгтэй.',
-              scores: {
-                attendance: 4.5,
-                technical: 4.0,
-                teamwork: 3.8,
-                communication: 3.5,
-                problemSolving: 4.2,
-              }
-            },
-            {
-              id: 2,
-              date: '2023-03-15',
-              overallScore: 3.8,
-              comment: 'Техникийн ур чадвар дунд зэрэг. Идэвх сонирхолтой ажиллаж байгаа нь сайшаалтай. Код бичих дадалаа сайжруулах хэрэгтэй.',
-              scores: {
-                attendance: 4.2,
-                technical: 3.7,
-                teamwork: 3.8,
-                communication: 3.5,
-                problemSolving: 3.8,
-              }
-            },
-            {
-              id: 3,
-              date: '2023-02-15',
-              overallScore: 3.5,
-              comment: 'Дадлага эхэлсэн. Суурь мэдлэгтэй боловч практик туршлага дутмаг байна. Идэвхтэй суралцаж байгаа нь сайшаалтай.',
-              scores: {
-                attendance: 4.0,
-                technical: 3.2,
-                teamwork: 3.5,
-                communication: 3.3,
-                problemSolving: 3.5,
-              }
-            }
-          ],
-          assignedTasks: [
-            {
-              id: 1,
-              title: 'Хэрэглэгчийн интерфэйс хөгжүүлэх',
-              status: 'completed',
-              deadline: '2023-03-10',
-              score: 9.5,
-              maxScore: 10
-            },
-            {
-              id: 2,
-              title: 'API холболт хийх',
-              status: 'completed',
-              deadline: '2023-03-25',
-              score: 8.7,
-              maxScore: 10
-            },
-            {
-              id: 3,
-              title: 'Тестүүд бичих',
-              status: 'in-progress',
-              deadline: '2023-04-20',
-              score: null,
-              maxScore: 10
-            }
-          ],
-          skillRatings: [
-            {
-              name: 'Техникийн ур чадвар',
-              rating: 4.5
-            },
-            {
-              name: 'Багаар ажиллах',
-              rating: 4.0
-            },
-            {
-              name: 'Харилцаа',
-              rating: 3.8
-            },
-            {
-              name: 'Асуудал шийдвэрлэх',
-              rating: 4.2
-            }
-          ]
-        });
+        setError('Менторын үнэлгээний мэдээлэл авахад алдаа гарлаа. Дахин оролдоно уу.');
       } finally {
         setLoading(false);
       }
@@ -137,11 +76,29 @@ const MentorEvaluation = () => {
     fetchEvaluationData();
   }, []);
 
-  if (error && !loading) {
+  if (loading) {
+    return (
+      <Card>
+        <Skeleton active avatar paragraph={{ rows: 4 }} />
+      </Card>
+    );
+  }
+
+  if (error) {
     return (
       <ErrorState 
         title="Алдаа гарлаа" 
         subTitle={error}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  if (!evaluationData || !evaluationData.mentor) {
+    return (
+      <ErrorState 
+        title="Мэдээлэл олдсонгүй" 
+        subTitle="Менторын үнэлгээний мэдээлэл олдсонгүй"
         onRetry={() => window.location.reload()}
       />
     );

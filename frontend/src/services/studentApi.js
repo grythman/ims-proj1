@@ -43,11 +43,11 @@ const studentApi = {
         // Get Current/Active Internship
         getCurrent: async () => {
             try {
-                const response = await api.get('/api/internships/my-internship/');
-                return response.data?.data || null;
+                const response = await api.get('/api/v1/internships/my-internship/');
+                return response.data;
             } catch (error) {
                 console.error('Error fetching current internship:', error);
-                return null;
+                throw error;
             }
         },
 

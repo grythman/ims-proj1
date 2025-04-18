@@ -46,6 +46,40 @@ class EvaluationAttachmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'description', 'uploaded_at']
         read_only_fields = ['uploaded_at']
 
+class EvaluationCreateSerializer(serializers.ModelSerializer):
+    scores = EvaluationScoreSerializer(many=True, required=False)
+    
+    class Meta:
+        model = Evaluation
+        fields = [
+            'internship', 'evaluated_student', 'comments',
+            'is_final', 'scores'
+        ]
+
+    def create(self, validated_data):
+        scores_data = validated_data.pop('scores', [])
+        evaluation = Evaluation.objects.create(**validated_data)
+        
+        # Create scores for each criteria if not provided
+        existing_criteria_ids = {score['criteria'].id for score in scores_data}
+        all_criteria = EvaluationCriteria.objects.filter(
+            evaluator_type=evaluation.evaluator.user_type
+        ).exclude(id__in=existing_criteria_ids)
+        
+        # Create scores from provided data
+        for score_data in scores_data:
+            EvaluationScore.objects.create(evaluation=evaluation, **score_data)
+            
+        # Create default scores for remaining criteria
+        for criterion in all_criteria:
+            EvaluationScore.objects.create(
+                evaluation=evaluation,
+                criteria=criterion,
+                score=0
+            )
+            
+        return evaluation
+
 class EvaluationSerializer(serializers.ModelSerializer):
     evaluator = UserSerializer(read_only=True)
     evaluated_student = UserSerializer(read_only=True)

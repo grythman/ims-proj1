@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.db.models import Q, Avg, Count
 from django.utils import timezone
 from .models import (
@@ -18,6 +19,7 @@ from .serializers import (
     EvaluationAttachmentSerializer
 )
 from .permissions import CanCreateEvaluation, CanViewEvaluation, IsEvaluator
+from apps.internships.models import Internship
 
 # Create your views here.
 
@@ -202,13 +204,25 @@ class TeacherEvaluationsView(views.APIView):
     def get(self, request):
         if request.user.user_type != 'teacher':
             return Response({
-                'error': 'Only teachers can access this endpoint'
+                'status': 'error',
+                'message': 'Only teachers can access this endpoint'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        evaluations = Evaluation.objects.all().order_by('-created_at')
+        evaluations = Evaluation.objects.filter(
+            Q(evaluator=request.user) | 
+            Q(internship__teacher=request.user)
+        ).select_related('evaluated_student').order_by('-date')
+
         return Response({
             'status': 'success',
-            'data': EvaluationSerializer(evaluations, many=True).data
+            'data': [{
+                'id': eval.id,
+                'student_name': f"{eval.evaluated_student.first_name} {eval.evaluated_student.last_name}",
+                'created_at': eval.date,
+                'is_final': eval.is_final,
+                'score': eval.scores.aggregate(avg=Avg('score'))['avg'] or 0,
+                'comments': eval.comments
+            } for eval in evaluations]
         })
 
 class StudentEvaluationsView(views.APIView):
@@ -258,3 +272,37 @@ class TeacherMentorEvaluationsView(views.APIView):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class StudentTeacherEvaluationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Get the student's internship
+            internship = Internship.objects.filter(student=request.user).first()
+            if not internship:
+                return Response(
+                    {"detail": "No internship found for this student"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Get the teacher's evaluation
+            evaluation = Evaluation.objects.filter(
+                internship=internship,
+                evaluator_type='teacher'
+            ).first()
+            
+            if not evaluation:
+                return Response(
+                    {"detail": "No teacher evaluation found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = EvaluationSerializer(evaluation)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

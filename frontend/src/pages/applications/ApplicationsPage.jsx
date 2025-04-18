@@ -18,15 +18,11 @@ const ApplicationsPage = () => {
 
   const fetchApplications = async () => {
     try {
-      const response = await api.get('/api/internships/applications/');
+      const response = await api.get('/api/v1/internships/applications/');
       setApplications(response.data);
     } catch (error) {
       console.error('Error fetching applications:', error);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message ||
-                          'Failed to load applications';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      setError('Failed to load applications');
     } finally {
       setLoading(false);
     }

@@ -6,14 +6,16 @@ import api from '../../services/api';
 const InternshipList = () => {
   const [internship, setInternship] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchInternship = async () => {
       try {
-        const response = await api.get('/internships/my-internship/');
+        const response = await api.get('/api/v1/internships/my-internship/');
         setInternship(response.data);
-      } catch (err) {
-        console.error('Error fetching internship:', err);
+      } catch (error) {
+        console.error('Error fetching internship:', error);
+        setError('Failed to fetch internship details');
       } finally {
         setLoading(false);
       }

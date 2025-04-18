@@ -33,15 +33,13 @@ const RegisterInternship = ({ onSuccess }) => {
 
   const fetchMentors = async (organizationId) => {
     try {
-      const response = await api.get(`/api/companies/${organizationId}/mentors/`);
-      if (response.data?.data) {
-        setMentors(response.data.data);
-      } else {
-        setMentors([]);
-      }
+      const response = await api.get(`/api/v1/users/mentors/`, {
+        params: { organization: organizationId }
+      });
+      setMentors(response.data.data || []);
     } catch (error) {
       console.error('Error fetching mentors:', error);
-      toast.error('Failed to load mentors');
+      toast.error('Менторуудын жагсаалтыг ачаалж чадсангүй');
       setMentors([]);
     }
   };

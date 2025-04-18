@@ -441,3 +441,14 @@ class InternshipListing(models.Model):
         ordering = ['-featured', '-postedDate']
         verbose_name = "Дадлагын Зар"
         verbose_name_plural = "Дадлагын Зарууд"
+
+class TeacherEvaluation(models.Model):
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_evaluations')
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_teacher_evaluations')
+    score = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('student', 'teacher')
+        ordering = ['-created_at']

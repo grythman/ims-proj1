@@ -16,7 +16,7 @@ class Command(BaseCommand):
                 student = User.objects.create_user(
                     username='student_test',
                     email='student@test.com',
-                    password='Test@123456',
+                    password='Test@123',
                     first_name='Test',
                     last_name='Student',
                     user_type='student'
@@ -28,7 +28,7 @@ class Command(BaseCommand):
                 mentor = User.objects.create_user(
                     username='mentor_test',
                     email='mentor@test.com',
-                    password='Test@123456',
+                    password='Test@123',
                     first_name='Test',
                     last_name='Mentor',
                     user_type='mentor'
@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 teacher = User.objects.create_user(
                     username='teacher_test',
                     email='teacher@test.com',
-                    password='Test@123456',
+                    password='Test@123',
                     first_name='Test',
                     last_name='Teacher',
                     user_type='teacher'

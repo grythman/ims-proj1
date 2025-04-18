@@ -19,10 +19,27 @@ const Tasks = () => {
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');
     const [sortBy, setSortBy] = useState('due_date');
+    const [internshipId, setInternshipId] = useState(null);
+
+    // Fetch current internship ID first
+    useEffect(() => {
+        const fetchInternshipId = async () => {
+            try {
+                const response = await api.get('/api/v1/internships/my-internship/');
+                setInternshipId(response.data.id);
+            } catch (err) {
+                setError('Failed to fetch internship details');
+                console.error('Error fetching internship:', err);
+                setLoading(false);
+            }
+        };
+        fetchInternshipId();
+    }, []);
 
     const fetchTasks = useCallback(async () => {
+        if (!internshipId) return;
         try {
-            const response = await api.get('/api/tasks/', {
+            const response = await api.get(`/api/v1/internships/${internshipId}/tasks/`, {
                 params: {
                     status: filter !== 'all' ? filter : undefined,
                     ordering: sortBy
@@ -35,11 +52,13 @@ const Tasks = () => {
         } finally {
             setLoading(false);
         }
-    }, [filter, sortBy]);
+    }, [filter, sortBy, internshipId]);
 
     useEffect(() => {
-        fetchTasks();
-    }, [fetchTasks]);
+        if (internshipId) {
+            fetchTasks();
+        }
+    }, [fetchTasks, internshipId]);
 
     const handleFilterChange = useCallback((newFilter) => {
         setFilter(newFilter);
